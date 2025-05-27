@@ -85,7 +85,8 @@ public class GameOfLifeHandler implements HttpHandler, RequestHandler<Map<String
 
         if ("OPTIONS".equalsIgnoreCase(he.getRequestMethod())) {
             he.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, OPTIONS");
-            he.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+            he.getResponseHeaders().add("Access-Control-Allow-Headers",
+                    "Content-Type,Authorization");
             he.sendResponseHeaders(204, -1);
             return;
         }
@@ -99,7 +100,8 @@ public class GameOfLifeHandler implements HttpHandler, RequestHandler<Map<String
         String mapFilename = parameters.get("mapFilename");
 
         int[][] map;
-        try (InputStream mapFileInputStream = getClass().getClassLoader().getResourceAsStream(mapFilename)) {
+        try (InputStream mapFileInputStream =
+                getClass().getClassLoader().getResourceAsStream(mapFilename)) {
             GameOfLifeInput request = MAPPER.readValue(mapFileInputStream, GameOfLifeInput.class);
             map = request.map;
         } catch (NullPointerException | JsonProcessingException e) {
@@ -124,12 +126,13 @@ public class GameOfLifeHandler implements HttpHandler, RequestHandler<Map<String
      * Entrypoint for AWS Lambda.
      */
     @Override
-    public String handleRequest(Map<String,String> event, Context context) {
+    public String handleRequest(Map<String, String> event, Context context) {
         int iterations = Integer.parseInt(event.get("iterations"));
         String mapFilename = event.get("mapFilename");
 
         int[][] map;
-        try (InputStream mapFileInputStream = getClass().getClassLoader().getResourceAsStream(mapFilename)) {
+        try (InputStream mapFileInputStream =
+                getClass().getClassLoader().getResourceAsStream(mapFilename)) {
             GameOfLifeInput request = MAPPER.readValue(mapFileInputStream, GameOfLifeInput.class);
             map = request.map;
         } catch (IOException | NullPointerException e) {
@@ -145,19 +148,21 @@ public class GameOfLifeHandler implements HttpHandler, RequestHandler<Map<String
      */
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.out.println("Usage: java pt.ulisboa.tecnico.cnv.gameoflife.GameOfLifeHandler <map_json_filename> <iterations>");
+            System.out.println(
+                    "Usage: java pt.ulisboa.tecnico.cnv.gameoflife.GameOfLifeHandler <map_json_filename> <iterations>");
             return;
         }
         String mapFilename = args[0];
 
         int[][] intMap;
-        try (InputStream mapFileInputStream = GameOfLifeHandler.class.getClassLoader().getResourceAsStream(mapFilename)) {
+        try (InputStream mapFileInputStream =
+                GameOfLifeHandler.class.getClassLoader().getResourceAsStream(mapFilename)) {
             GameOfLifeInput request = MAPPER.readValue(mapFileInputStream, GameOfLifeInput.class);
             intMap = request.map;
         } catch (IOException | NullPointerException e) {
             e.printStackTrace();
             System.exit(1);
-            return;  // redundant but needed to avoid null-check warning.
+            return; // redundant but needed to avoid null-check warning.
         }
 
         int iterations = 0;

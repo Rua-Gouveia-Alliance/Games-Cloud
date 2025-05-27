@@ -12,6 +12,7 @@ public class FifteenPuzzle {
     final int[] tiles;
     private final int displayWidth;
     private int blankPos;
+
     private static class BoardState {
         final int[] tiles;
         final int blankPos;
@@ -23,8 +24,10 @@ public class FifteenPuzzle {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof BoardState)) return false;
+            if (this == o)
+                return true;
+            if (!(o instanceof BoardState))
+                return false;
             BoardState that = (BoardState) o;
             return Arrays.equals(this.tiles, that.tiles);
         }
@@ -56,36 +59,40 @@ public class FifteenPuzzle {
 
     public void shuffle(int moves, Random random) {
         int prevDir = -1; // -1 = none, 0 = up, 1 = down, 2 = left, 3 = right
-    
+
         for (int i = 0; i < moves; i++) {
             List<Integer> valid = new ArrayList<>();
             int row = blankPos / size;
             int col = blankPos % size;
-    
-            if (row > 0 && prevDir != 1) valid.add(0); // UP
-            if (row < size - 1 && prevDir != 0) valid.add(1); // DOWN
-            if (col > 0 && prevDir != 3) valid.add(2); // LEFT
-            if (col < size - 1 && prevDir != 2) valid.add(3); // RIGHT
-    
+
+            if (row > 0 && prevDir != 1)
+                valid.add(0); // UP
+            if (row < size - 1 && prevDir != 0)
+                valid.add(1); // DOWN
+            if (col > 0 && prevDir != 3)
+                valid.add(2); // LEFT
+            if (col < size - 1 && prevDir != 2)
+                valid.add(3); // RIGHT
+
             int dir = valid.get(random.nextInt(valid.size()));
             int newBlankPos;
             switch (dir) {
-                case 0: 
+                case 0:
                     newBlankPos = blankPos - size; // up
                     break;
-                case 1: 
+                case 1:
                     newBlankPos = blankPos + size; // down
                     break;
-                case 2: 
+                case 2:
                     newBlankPos = blankPos - 1; // left
                     break;
-                case 3: 
+                case 3:
                     newBlankPos = blankPos + 1; // right
                     break;
-                default: 
+                default:
                     throw new IllegalStateException();
             }
-    
+
             tiles[blankPos] = tiles[newBlankPos];
             tiles[newBlankPos] = 0;
             blankPos = newBlankPos;
@@ -97,7 +104,7 @@ public class FifteenPuzzle {
         List<Integer> moves = new ArrayList<>();
         int x = blankPos / size;
         int y = blankPos % size;
-        int[][] directions = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+        int[][] directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
         for (int[] dir : directions) {
             int nx = x + dir[0];
             int ny = y + dir[1];
@@ -116,7 +123,8 @@ public class FifteenPuzzle {
             for (int j = 0; j < size; j++) {
                 int val = tiles[i * size + j];
                 String s = (val == 0) ? "" : Integer.toString(val);
-                while (s.length() < displayWidth) s = " " + s;
+                while (s.length() < displayWidth)
+                    s = " " + s;
                 sb.append(s).append(" | ");
             }
             sb.append("\n");
@@ -127,7 +135,8 @@ public class FifteenPuzzle {
 
     private boolean isSolved(int[] board) {
         for (int i = 0; i < size * size - 1; i++) {
-            if (board[i] != i + 1) return false;
+            if (board[i] != i + 1)
+                return false;
         }
         return board[size * size - 1] == 0;
     }
@@ -152,7 +161,7 @@ public class FifteenPuzzle {
         int threshold = manhattanDistance(start.tiles);
         List<BoardState> path = new ArrayList<>();
         path.add(start);
-    
+
         while (true) {
             Set<BoardState> visited = new HashSet<>();
             int temp = idaSearch(path, 0, threshold, visited);
@@ -170,13 +179,15 @@ public class FifteenPuzzle {
             threshold = temp;
         }
     }
-    
+
     private int idaSearch(List<BoardState> path, int g, int threshold, Set<BoardState> visited) {
         BoardState current = path.get(path.size() - 1);
         int f = g + manhattanDistance(current.tiles);
-        if (f > threshold) return f;
-        if (isSolved(current.tiles)) return -1;
-    
+        if (f > threshold)
+            return f;
+        if (isSolved(current.tiles))
+            return -1;
+
         visited.add(current);
         int min = Integer.MAX_VALUE;
         for (int move : validMoves(current.blankPos)) {
@@ -184,13 +195,16 @@ public class FifteenPuzzle {
             newTiles[current.blankPos] = newTiles[move];
             newTiles[move] = 0;
             BoardState neighbor = new BoardState(newTiles, move);
-    
-            if (visited.contains(neighbor)) continue;
-    
+
+            if (visited.contains(neighbor))
+                continue;
+
             path.add(neighbor);
             int temp = idaSearch(path, g + 1, threshold, visited);
-            if (temp == -1) return -1;
-            if (temp < min) min = temp;
+            if (temp == -1)
+                return -1;
+            if (temp < min)
+                min = temp;
             path.remove(path.size() - 1);
         }
         visited.remove(current);
@@ -210,11 +224,12 @@ public class FifteenPuzzle {
     }
 
     static String getSolutionData(List<FifteenPuzzle> solution) {
-        if (solution == null) return "No solution found.";
+        if (solution == null)
+            return "No solution found.";
         return "\nSolution found in " + (solution.size() - 1) + " moves.";
         // Optional: Uncomment to show each step of the solution
-        //for (FifteenPuzzle step : solution) {
-        //		sb.append(step.getData());
-        //}
+        // for (FifteenPuzzle step : solution) {
+        // sb.append(step.getData());
+        // }
     }
-} 
+}

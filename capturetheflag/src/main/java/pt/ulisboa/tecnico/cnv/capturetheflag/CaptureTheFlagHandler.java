@@ -12,16 +12,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CaptureTheFlagHandler implements HttpHandler, RequestHandler<Map<String, String>, String> {
+public class CaptureTheFlagHandler
+        implements HttpHandler, RequestHandler<Map<String, String>, String> {
 
     /**
      * Simulation entrypoint.
      */
-    private String handleWorkload(int gridSize, int numBlueAgents, int numRedAgents, char flagPlacementType) {
+    private String handleWorkload(int gridSize, int numBlueAgents, int numRedAgents,
+            char flagPlacementType) {
         try {
             int numFlagsPerTeam = gridSize / 2;
             Simulation simulation = new Simulation();
-            simulation.init(gridSize, flagPlacementType, numBlueAgents, numRedAgents, numFlagsPerTeam, false);
+            simulation.init(gridSize, flagPlacementType, numBlueAgents, numRedAgents,
+                    numFlagsPerTeam, false);
             simulation.run();
             return simulation.getData();
         } catch (Exception e) {
@@ -39,7 +42,8 @@ public class CaptureTheFlagHandler implements HttpHandler, RequestHandler<Map<St
 
         if ("OPTIONS".equalsIgnoreCase(he.getRequestMethod())) {
             he.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, OPTIONS");
-            he.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+            he.getResponseHeaders().add("Access-Control-Allow-Headers",
+                    "Content-Type,Authorization");
             he.sendResponseHeaders(204, -1);
             return;
         }
@@ -55,7 +59,8 @@ public class CaptureTheFlagHandler implements HttpHandler, RequestHandler<Map<St
         char flagPlacementType = parameters.get("flagPlacementType").toUpperCase().charAt(0);
 
         if (!validateInputs(gridSize, numBlueAgents, numRedAgents, flagPlacementType)) {
-            String response = "Invalid input. Please provide a valid grid size, number of blue agents, number of red agents and flag placement type (A, B or C).";
+            String response =
+                    "Invalid input. Please provide a valid grid size, number of blue agents, number of red agents and flag placement type (A, B or C).";
             he.sendResponseHeaders(400, response.length());
             OutputStream os = he.getResponseBody();
             os.write(response.getBytes());
@@ -90,8 +95,10 @@ public class CaptureTheFlagHandler implements HttpHandler, RequestHandler<Map<St
 
     public static void main(String[] args) {
         if (args.length < 4) {
-            System.out.println("Usage: java pt.ulisboa.tecnico.cnv.capturetheflag.CaptureTheFlagHandler <grid_size> <num_blue_agents> <num_red_agents> <flag_placement_type>");
-            System.out.println("Where: grid_size >= 10; num_blue_agents <= grid_size; num_red_agents <= grid_size; flag_placement_type=A|B|C");
+            System.out.println(
+                    "Usage: java pt.ulisboa.tecnico.cnv.capturetheflag.CaptureTheFlagHandler <grid_size> <num_blue_agents> <num_red_agents> <flag_placement_type>");
+            System.out.println(
+                    "Where: grid_size >= 10; num_blue_agents <= grid_size; num_red_agents <= grid_size; flag_placement_type=A|B|C");
             return;
         }
 
@@ -105,7 +112,8 @@ public class CaptureTheFlagHandler implements HttpHandler, RequestHandler<Map<St
         }
 
         if (numBlueAgents > gridSize || numRedAgents > gridSize) {
-            throw new IllegalArgumentException("number of agents per team must be lower or equal to the grid size");
+            throw new IllegalArgumentException(
+                    "number of agents per team must be lower or equal to the grid size");
         }
 
         if (!List.of('A', 'B', 'C').contains(flagPlacementType)) {
@@ -116,7 +124,8 @@ public class CaptureTheFlagHandler implements HttpHandler, RequestHandler<Map<St
 
         int numFlagsPerTeam = gridSize / 2;
         Simulation simulation = new Simulation();
-        simulation.init(gridSize, flagPlacementType, numBlueAgents, numRedAgents, numFlagsPerTeam, true);
+        simulation.init(gridSize, flagPlacementType, numBlueAgents, numRedAgents, numFlagsPerTeam,
+                true);
         simulation.run();
         System.out.println(simulation.getData());
 
@@ -143,7 +152,8 @@ public class CaptureTheFlagHandler implements HttpHandler, RequestHandler<Map<St
         return result;
     }
 
-    private boolean validateInputs(int gridSize, int numBlueAgents, int numRedAgents, char flagPlacementType) {
+    private boolean validateInputs(int gridSize, int numBlueAgents, int numRedAgents,
+            char flagPlacementType) {
         if (gridSize < 10) {
             return false;
         }

@@ -3,8 +3,8 @@ package pt.ulisboa.tecnico.cnv.gameoflife;
 import java.io.IOException;
 
 /**
- * Inspired by: https://www.algosome.com/articles/conway-game-of-life-2d.html
- * Read more details and rules here: https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
+ * Inspired by: https://www.algosome.com/articles/conway-game-of-life-2d.html Read more details and
+ * rules here: https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
  */
 public class GameOfLife {
 

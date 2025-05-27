@@ -21,7 +21,7 @@ public class Simulation {
 
     StringBuilder sb;
 
-    static final int[][] DIRECTIONS = {{-1,0},{1,0},{0,-1},{0,1}};
+    static final int[][] DIRECTIONS = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 
     public Simulation() {
         this.blueScore = 0;
@@ -33,23 +33,28 @@ public class Simulation {
         this.sb = new StringBuilder();
     }
 
-    public void init(int gridSize, char flagPlacementType, int numBlueAgents, int numRedAgents, int numFlagsPerTeam, boolean coloredOutput) {
-        sb.append("[DEBUG] grid_size = ").append(gridSize).append("; flag_placement_type = ").append(flagPlacementType).append("\n");
-        sb.append("[DEBUG] num_blue_agents = ").append(numBlueAgents).append("; num_red_agents = ").append(numRedAgents).append("\n");
+    public void init(int gridSize, char flagPlacementType, int numBlueAgents, int numRedAgents,
+            int numFlagsPerTeam, boolean coloredOutput) {
+        sb.append("[DEBUG] grid_size = ").append(gridSize).append("; flag_placement_type = ")
+                .append(flagPlacementType).append("\n");
+        sb.append("[DEBUG] num_blue_agents = ").append(numBlueAgents).append("; num_red_agents = ")
+                .append(numRedAgents).append("\n");
         sb.append("\n");
 
         this.grid = new Grid(gridSize, coloredOutput);
         this.numFlagsPerTeam = numFlagsPerTeam;
         grid.init();
         grid.spawnObstacles();
-        grid.spawnFlags(flagPlacementType, this.redFlagPositions, this.blueFlagPositions, numFlagsPerTeam);
+        grid.spawnFlags(flagPlacementType, this.redFlagPositions, this.blueFlagPositions,
+                numFlagsPerTeam);
         grid.spawnAgents(this.blueAgents, this.redAgents, numBlueAgents, numRedAgents);
     }
 
     public void run() {
         int round = 0;
 
-        sb.append("[INFO] round = ").append(round).append("; score (blue, red) = (").append(blueScore).append(", ").append(redScore).append(")\n");
+        sb.append("[INFO] round = ").append(round).append("; score (blue, red) = (")
+                .append(blueScore).append(", ").append(redScore).append(")\n");
         this.grid.printBoard(sb);
         sb.append("\n");
 
@@ -59,14 +64,16 @@ public class Simulation {
             moveTeam(blueAgents, blueFlagPositions);
             moveTeam(redAgents, redFlagPositions);
             checkDeadlock();
-            //this.grid.print(round, blueScore, redScore);
-            //Thread.sleep(200);
-            if (checkWin()) break;
+            // this.grid.print(round, blueScore, redScore);
+            // Thread.sleep(200);
+            if (checkWin())
+                break;
         }
 
         this.grid.printBoard(sb);
 
-        sb.append("[INFO] final score (blue, red) = (").append(blueScore).append(", ").append(redScore).append(")\n");
+        sb.append("[INFO] final score (blue, red) = (").append(blueScore).append(", ")
+                .append(redScore).append(")\n");
         sb.append("[INFO] num rounds = ").append(round).append("\n");
     }
 
@@ -79,20 +86,28 @@ public class Simulation {
         if (!this.moveDetected) {
             boolean anyFrozen = true;
             for (Agent a : blueAgents) {
-                if (a.cooldown > 0) { anyFrozen = false; break; }
+                if (a.cooldown > 0) {
+                    anyFrozen = false;
+                    break;
+                }
             }
             if (anyFrozen) {
                 for (Agent a : redAgents) {
-                    if (a.cooldown > 0) { anyFrozen = false; break; }
+                    if (a.cooldown > 0) {
+                        anyFrozen = false;
+                        break;
+                    }
                 }
             }
             if (anyFrozen) {
                 sb.append("[WARN] no possible moves for game state:").append("\n");
                 for (Agent a : blueAgents) {
-                    sb.append("- blue agent @ (").append(a.x).append(",").append(a.y).append("), cooldown = ").append(a.cooldown).append("\n");
+                    sb.append("- blue agent @ (").append(a.x).append(",").append(a.y)
+                            .append("), cooldown = ").append(a.cooldown).append("\n");
                 }
                 for (Agent a : redAgents) {
-                    sb.append("- red agent @ (").append(a.x).append(",").append(a.y).append("), cooldown = ").append(a.cooldown).append("\n");
+                    sb.append("- red agent @ (").append(a.x).append(",").append(a.y)
+                            .append("), cooldown = ").append(a.cooldown).append("\n");
                 }
                 throw new RuntimeException("no possible moves");
             }
@@ -114,13 +129,16 @@ public class Simulation {
     public void moveTeam(List<Agent> team, List<int[]> flagPositions) {
         for (Agent agent : team) {
             boolean canMove = checkCooldown(agent);
-            if (!canMove) continue; // skip this agent
+            if (!canMove)
+                continue; // skip this agent
 
             int[] flagPos = findNearestPosition(agent.x, agent.y, flagPositions);
-            if (flagPos == null) continue;
+            if (flagPos == null)
+                continue;
 
             int[] next = bfsNextStep(agent.x, agent.y, flagPos[0], flagPos[1]);
-            if (next == null || this.grid.cellHasAgent(next[0], next[1])) continue;
+            if (next == null || this.grid.cellHasAgent(next[0], next[1]))
+                continue;
 
             this.grid.markCellWithAgentTrace(agent.x, agent.y, agent.isBlue()); // mark agent traces
             agent.setPosition(next[0], next[1]);
@@ -154,7 +172,7 @@ public class Simulation {
     }
 
     public int[] findNearestPosition(int x, int y, List<int[]> posLst) {
-        int best = 2*(this.grid.getSize()-1); // max from corners, e.g., [0, 0] to [n-1, n-1]
+        int best = 2 * (this.grid.getSize() - 1); // max from corners, e.g., [0, 0] to [n-1, n-1]
         int bx = -1;
         int by = -1;
 
@@ -170,13 +188,13 @@ public class Simulation {
         if (bx < 0) {
             return null;
         }
-        return new int[]{bx, by};
+        return new int[] {bx, by};
     }
 
     public int[] bfsNextStep(int sx, int sy, int tx, int ty) {
         int gridSize = this.grid.getSize();
         Queue<int[]> q = new LinkedList<>();
-        q.add(new int[]{sx, sy});
+        q.add(new int[] {sx, sy});
         boolean[][] visited = new boolean[gridSize][gridSize];
         visited[sx][sy] = true;
 
@@ -188,7 +206,8 @@ public class Simulation {
 
         while (!q.isEmpty()) {
             int[] c = q.poll();
-            if (c[0] == tx && c[1] == ty) break;
+            if (c[0] == tx && c[1] == ty)
+                break;
 
             for (int[] dir : DIRECTIONS) {
                 int nx = c[0] + dir[0];
@@ -200,11 +219,10 @@ public class Simulation {
                     // 2. there is an agent
                     // 3. there is an obstacle
                     if (this.grid.cellHasFlag(nx, ny) && (nx != tx || ny != ty)
-                            || this.grid.cellHasAgent(nx, ny)
-                            || this.grid.cellHasObstacle(nx, ny))
+                            || this.grid.cellHasAgent(nx, ny) || this.grid.cellHasObstacle(nx, ny))
                         continue;
 
-                    q.add(new int[]{nx, ny});
+                    q.add(new int[] {nx, ny});
                     visited[nx][ny] = true;
 
                     key = positionToKey(gridSize, nx, ny);
@@ -228,7 +246,7 @@ public class Simulation {
     }
 
     private static int[] keyToPosition(int gridSize, int key) {
-        return new int[]{key / gridSize, key % gridSize};
+        return new int[] {key / gridSize, key % gridSize};
     }
 
     private static int findRootPosition(Map<Integer, Integer> parent, int key) {

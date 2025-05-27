@@ -13,7 +13,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-public class FifteenPuzzleHandler implements HttpHandler, RequestHandler<Map<String, String>, String> {
+public class FifteenPuzzleHandler
+        implements HttpHandler, RequestHandler<Map<String, String>, String> {
 
     /**
      * Solver entrypoint.
@@ -49,7 +50,8 @@ public class FifteenPuzzleHandler implements HttpHandler, RequestHandler<Map<Str
 
         if ("OPTIONS".equalsIgnoreCase(he.getRequestMethod())) {
             he.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, OPTIONS");
-            he.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+            he.getResponseHeaders().add("Access-Control-Allow-Headers",
+                    "Content-Type,Authorization");
             he.sendResponseHeaders(204, -1);
             return;
         }
@@ -84,7 +86,8 @@ public class FifteenPuzzleHandler implements HttpHandler, RequestHandler<Map<Str
 
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.out.println("Usage: java pt.ulisboa.tecnico.cnv.fifteenpuzzle.FifteenPuzzleHandler <size> <number_of_shuffles>");
+            System.out.println(
+                    "Usage: java pt.ulisboa.tecnico.cnv.fifteenpuzzle.FifteenPuzzleHandler <size> <number_of_shuffles>");
             return;
         }
 
