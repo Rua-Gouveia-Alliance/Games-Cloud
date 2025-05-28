@@ -8,15 +8,15 @@
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 
-	<!-- Modules are subcomponents of the project. 
+	<!-- Modules are subcomponents of the project.
 		The reactor collects all the available modules to build;
 		sorts the projects into the correct build order;
 		builds the selected projects in order. -->
 	<modules>
 		<module>webserver</module>
+		<module>javassist</module>
 		<module>gameoflife</module>
 		<module>fifteenpuzzle</module>
 		<module>capturetheflag</module>
 	</modules>
-
 </project>
