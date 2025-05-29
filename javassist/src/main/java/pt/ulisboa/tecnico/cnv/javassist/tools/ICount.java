@@ -78,5 +78,4 @@ public class ICount extends CodeDumper {
         block.behavior.insertAt(block.line, String.format("%s.incBasicBlock(%s, %s);",
                 ICount.class.getName(), block.getPosition(), block.getLength()));
     }
-
 }
