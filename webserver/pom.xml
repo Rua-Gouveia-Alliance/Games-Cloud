@@ -48,7 +48,7 @@
                     <descriptorRef>jar-with-dependencies</descriptorRef>
                 </descriptorRefs>
                 <archive>
-                    <manifestFile>../instrumentation/src/main/resources/META-INF/MANIFEST.MF</manifestFile>
+                    <manifestFile>../javassist/src/main/resources/META-INF/MANIFEST.MF</manifestFile>
                 </archive>
             </configuration>
             <executions>
