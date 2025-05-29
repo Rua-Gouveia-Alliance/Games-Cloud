@@ -1,5 +1,8 @@
 package pt.ulisboa.tecnico.cnv.javassist.tools;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 
 import javassist.CannotCompileException;
@@ -39,13 +42,18 @@ public class ICount extends CodeDumper {
         nmethods = nblocks = ninsts = 0;
     }
 
-    public static void printStatistics() {
-        System.out.println(String.format("[%s] Number of executed methods: %s",
-                ICount.class.getSimpleName(), nmethods));
-        System.out.println(String.format("[%s] Number of executed basic blocks: %s",
-                ICount.class.getSimpleName(), nblocks));
-        System.out.println(String.format("[%s] Number of executed instructions: %s",
-                ICount.class.getSimpleName(), ninsts));
+    public static void printStatistics(String className) {
+        try {
+            FileWriter fwriter = new FileWriter(String.format("output/%s.txt", className), true);
+            fwriter.write(String.format("M: %s; BB: %s; I: %s\n", nmethods, nblocks, ninsts));
+            fwriter.close();
+            System.out.println(String.format("[%s] Successfully logged metrics for %s",
+                    ICount.class.getSimpleName(), className));
+        } catch (IOException e) {
+            System.out.println(String.format("[%s] Failed logging metrics for %s",
+                    ICount.class.getSimpleName(), className));
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -57,7 +65,9 @@ public class ICount extends CodeDumper {
         String behaviorName = behavior.getName();
         if (behaviorName.equals("handle") || behaviorName.equals("handleRequest")) {
             behavior.insertBefore(String.format("%s.resetStatistics();", ICount.class.getName()));
-            behavior.insertAfter(String.format("%s.printStatistics();", ICount.class.getName()),
+            behavior.insertAfter(
+                    String.format("%s.printStatistics(this.getClass().getSimpleName());",
+                            ICount.class.getName()),
                     true);
         }
     }
