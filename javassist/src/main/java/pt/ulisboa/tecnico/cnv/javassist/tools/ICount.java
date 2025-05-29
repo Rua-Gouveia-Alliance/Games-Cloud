@@ -12,39 +12,42 @@ public class ICount extends CodeDumper {
     /**
      * Number of executed basic blocks.
      */
-    private static long nblocks = 0;
+    private static final ThreadLocal<Long> nblocks = ThreadLocal.withInitial(() -> 0L);
 
     /**
      * Number of executed methods.
      */
-    private static long nmethods = 0;
+    private static final ThreadLocal<Long> nmethods = ThreadLocal.withInitial(() -> 0L);
 
     /**
      * Number of executed instructions.
      */
-    private static long ninsts = 0;
+    private static final ThreadLocal<Long> ninsts = ThreadLocal.withInitial(() -> 0L);
 
     public ICount(List<String> packageNameList, String writeDestination) {
         super(packageNameList, writeDestination);
     }
 
     public static void incBasicBlock(int position, int length) {
-        nblocks++;
-        ninsts += length;
+        nblocks.set(nblocks.get() + 1);
+        ninsts.set(ninsts.get() + length);
     }
 
     public static void incBehavior(String name) {
-        nmethods++;
+        nmethods.set(nmethods.get() + 1);
     }
 
     public static void resetStatistics() {
-        nmethods = nblocks = ninsts = 0;
+        nblocks.set(0L);
+        nmethods.set(0L);
+        ninsts.set(0L);
     }
 
     public static void printStatistics(String className) {
         try {
             FileWriter fwriter = new FileWriter(String.format("output/%s.txt", className), true);
-            fwriter.write(String.format("M: %s; BB: %s; I: %s\n", nmethods, nblocks, ninsts));
+            fwriter.write(String.format("M: %s; BB: %s; I: %s\n", nmethods.get(), nblocks.get(),
+                    ninsts.get()));
             fwriter.close();
             System.out.println(String.format("[%s] Successfully logged metrics for %s",
                     ICount.class.getSimpleName(), className));
