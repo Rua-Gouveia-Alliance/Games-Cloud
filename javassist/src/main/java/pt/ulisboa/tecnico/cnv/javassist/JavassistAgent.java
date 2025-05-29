@@ -8,13 +8,18 @@ import pt.ulisboa.tecnico.cnv.javassist.tools.AbstractJavassistTool;
 
 public class JavassistAgent {
 
-    private static AbstractJavassistTool getTransformer(String toolName, List<String> packageNameList, String writeDestination) throws Exception {
-        Class<?> transformerClass = Class.forName("pt.ulisboa.tecnico.cnv.javassist.tools." + toolName);
-        return (AbstractJavassistTool) transformerClass.getDeclaredConstructor(List.class, String.class).newInstance(packageNameList, writeDestination);
+    private static AbstractJavassistTool getTransformer(String toolName,
+            List<String> packageNameList, String writeDestination) throws Exception {
+        Class<?> transformerClass =
+                Class.forName("pt.ulisboa.tecnico.cnv.javassist.tools." + toolName);
+        return (AbstractJavassistTool) transformerClass
+                .getDeclaredConstructor(List.class, String.class)
+                .newInstance(packageNameList, writeDestination);
     }
 
     /**
      * This method is invoked before the target 'main' method is invoked.
+     *
      * @param agentArgs
      * @param inst
      * @throws Exception
