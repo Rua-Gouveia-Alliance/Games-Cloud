@@ -28,18 +28,23 @@ The architecture follows a **Load Balanced Auto-Scaling Group** model to host an
 #### Components
 
 * **Amazon EC2 Instances**
+  
   Used to run the workloads (`capturetheflag`, `fifteenpuzzle`, `gameoflife`) exposed by the instrumented `webserver`.
 
 * **Amazon Machine Image (AMI)**
+  
   Created from a manually configured EC2 instance, containing the web server and startup scripts.
 
 * **Elastic Load Balancer (ELB)**
+  
   Distributes incoming HTTP requests across multiple EC2 instances running in a single Availability Zone.
 
 * **Auto Scaling Group (ASG)**
+  
   Ensures availability and elasticity of the application by scaling the number of EC2 instances based on CPU usage.
 
 * **CloudWatch Alarms**
+  
   Monitor EC2 CPU utilization and trigger scaling policies accordingly.
 
 
