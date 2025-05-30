@@ -6,3 +6,6 @@ output
 **/.classpath
 *.pem
 rootkey.csv
+image.id
+instance.dns
+instance.id

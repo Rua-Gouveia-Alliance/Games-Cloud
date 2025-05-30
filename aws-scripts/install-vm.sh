@@ -12,41 +12,38 @@ ssh -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH ec2-user@$(cat insta
 scp -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH -r $SERVER_PATH ec2-user@$(cat instance.dns):~
 
 # Build web server.
-cmd="cd ~/cnv25-05; mvn clean package"
+cmd="cd ~/cnv25-g05; mvn clean package"
 ssh -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH ec2-user@$(cat instance.dns) $cmd 
 
-# Setup web server to start on instance launch.
-cmd='
-sudo tee /etc/rc.local > /dev/null <<EOF
+# Start web server at boot using rc.local
+ssh -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH ec2-user@$(cat instance.dns) 'bash -s' <<'EOF'
+sudo tee /etc/rc.local > /dev/null <<EOL
 #!/bin/bash
-cd ~/cnv25-05
+cd /home/ec2-user/cnv25-g05
 java -cp webserver/target/webserver-1.0.0-SNAPSHOT-jar-with-dependencies.jar \
 -javaagent:javassist/target/javassist-1.0.0-SNAPSHOT-jar-with-dependencies.jar=ICount:pt.ulisboa.tecnico.cnv.capturetheflag,pt.ulisboa.tecnico.cnv.fifteenpuzzle,pt.ulisboa.tecnico.cnv.gameoflife:output \
 pt.ulisboa.tecnico.cnv.webserver.WebServer &
-EOF
+EOL
 sudo chmod +x /etc/rc.local
-'
-ssh -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH ec2-user@$(cat instance.dns) $cmd
+EOF
 
-# Create deamon and enable it
-cmd='
-sudo tee /etc/systemd/system/rc-local.service > /dev/null <<EOF
+# Create and enable rc-local.service
+ssh -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH ec2-user@$(cat instance.dns) 'bash -s' <<'EOF'
+sudo tee /etc/systemd/system/rc-local.service > /dev/null <<EOL
 [Unit]
- Description=/etc/rc.local Compatibility
- ConditionPathExists=/etc/rc.local
+Description=/etc/rc.local Compatibility
+ConditionPathExists=/etc/rc.local
 
 [Service]
- Type=forking
- ExecStart=/etc/rc.local start
- TimeoutSec=0
- StandardOutput=tty
- RemainAfterExit=yes
- SysVStartPriority=99
+Type=forking
+ExecStart=/etc/rc.local start
+TimeoutSec=0
+StandardOutput=tty
+RemainAfterExit=yes
+SysVStartPriority=99
 
 [Install]
- WantedBy=multi-user.target
-EOF
+WantedBy=multi-user.target
+EOL
 sudo systemctl enable rc-local.service
-'
-ssh -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH ec2-user@$(cat instance.dns) $cmd
-
+EOF
