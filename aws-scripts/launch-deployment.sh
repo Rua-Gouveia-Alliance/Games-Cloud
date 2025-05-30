@@ -6,7 +6,7 @@ source config.sh
 aws elb create-load-balancer \
 	--load-balancer-name GaC-LB \
 	--listeners "Protocol=HTTP,LoadBalancerPort=80,InstanceProtocol=HTTP,InstancePort=8000" \
-	--availability-zones us-east-2a
+	--availability-zones eu-west-3a
 
 aws elb configure-health-check \
 	--load-balancer-name GaC-LB \
@@ -30,7 +30,7 @@ aws autoscaling create-auto-scaling-group \
 	--auto-scaling-group-name GaC-ASG \
     --launch-template LaunchTemplateName=GaC-launchtemp,Version=1 \
 	--load-balancer-names GaC-LB \
-	--availability-zones us-east-2a \
+	--availability-zones eu-west-3a \
 	--health-check-type ELB \
 	--health-check-grace-period 60 \
 	--min-size 1 \
