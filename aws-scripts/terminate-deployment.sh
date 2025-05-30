@@ -10,6 +10,7 @@ aws autoscaling update-auto-scaling-group \
   	--desired-capacity 0
 
 # Optional: wait for instance termination before deletion
+echo "Waiting 60 seconds for instance termination..."
 sleep 60
 
 aws autoscaling delete-auto-scaling-group \
@@ -23,3 +24,29 @@ aws ec2 delete-launch-template \
 # Step 3: delete load balancer.
 aws elb delete-load-balancer \
 	--load-balancer-name GaC-LB
+
+# Step 4: delete cloudwatch alarms
+aws cloudwatch delete-alarms \
+	--alarm-names GaC-CPU-High GaC-CPU-Low
+
+# Step 5: delete image and snapshots
+IMAGE_ID=$(cat image.id)
+
+# Get and delete associated snapshots
+SNAPSHOT_IDS=$(aws ec2 describe-images \
+    --image-ids "$IMAGE_ID" \
+    --query "Images[].BlockDeviceMappings[].Ebs.SnapshotId" \
+    --output text)
+
+# Deregister the AMI
+aws ec2 deregister-image --image-id "$IMAGE_ID"
+sleep 1
+
+for SNAPSHOT_ID in $SNAPSHOT_IDS; do
+    aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
+done
+
+# Step 6: delete files
+rm image.id instance.dns instance.id
+
+echo "Done."

@@ -22,7 +22,7 @@ aws ec2 create-launch-template \
 		\"KeyName\": \"$AWS_KEYPAIR_NAME\",
 		\"SecurityGroupIds\": [\"$AWS_SECURITY_GROUP\"],
 		\"Monitoring\": {\"Enabled\": true}
-    }"
+}"
 
 
 # Create auto scaling group.
@@ -36,3 +36,5 @@ aws autoscaling create-auto-scaling-group \
 	--min-size 1 \
 	--max-size 3 \
 	--desired-capacity 1
+
+$DIR/autoscaling.sh
