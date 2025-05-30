@@ -11,7 +11,3 @@ export AWS_SECURITY_GROUP="sg-02d5d0ab5b27c69f3"
 export AWS_KEYPAIR_NAME="gac-aws-key"
 
 #aws sts get-caller-identity
-aws ec2 describe-images \
-    --image-ids "ami-026f176f0b2b9758e" \
-    --query "Images[].BlockDeviceMappings[].Ebs.SnapshotId" \
-    --output text
