@@ -12,19 +12,23 @@ aws elb configure-health-check \
 	--load-balancer-name GaC-LB \
 	--health-check Target=HTTP:8000/test,Interval=30,UnhealthyThreshold=2,HealthyThreshold=10,Timeout=5
 
-# Create launch configuration.
-aws autoscaling create-launch-configuration \
-	--launch-configuration-name GaC-launchconfig \
-	--image-id $(cat image.id) \
-	--instance-type t2.micro \
-	--security-groups $AWS_SECURITY_GROUP \
-	--key-name $AWS_KEYPAIR_NAME \
-	--instance-monitoring Enabled=true
+# Create Launch Template
+aws ec2 create-launch-template \
+	--launch-template-name GaC-launchtemp \
+	--version-description "v1" \
+	--launch-template-data "{
+		\"ImageId\": \"$(cat image.id)\",
+		\"InstanceType\": \"t2.micro\",
+		\"KeyName\": \"$AWS_KEYPAIR_NAME\",
+		\"SecurityGroupIds\": [\"$AWS_SECURITY_GROUP\"],
+		\"Monitoring\": {\"Enabled\": true}
+    }"
+
 
 # Create auto scaling group.
 aws autoscaling create-auto-scaling-group \
 	--auto-scaling-group-name GaC-ASG \
-	--launch-configuration-name GaC-launchconfig \
+    --launch-template LaunchTemplateName=GaC-launchtemp,Version=1 \
 	--load-balancer-names GaC-LB \
 	--availability-zones us-east-2a \
 	--health-check-type ELB \
