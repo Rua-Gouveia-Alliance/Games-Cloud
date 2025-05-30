@@ -17,4 +17,4 @@ done
 
 # Sending a query!
 echo "Sending a query!"
-curl $(cat instance.dns):8000/test\?testing-after-reboot
+curl $(cat instance.dns):8000/index.html
