@@ -5,7 +5,7 @@ source config.sh
 SERVER_PATH="$DIR/../../cnv25-g05"
 
 # Install java.
-cmd="sudo dfn update -y; sudo dnf install java-21-amazon-corretto-devel.x86_64 -y; sudo dnf install maven-amazon-corretto21 -y"
+cmd="sudo dnf update -y; sudo dnf install java-21-amazon-corretto-devel.x86_64 -y; sudo dnf install maven-amazon-corretto21 -y"
 ssh -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH ec2-user@$(cat instance.dns) $cmd
 
 # Install web server.
