@@ -3,11 +3,13 @@ package pt.ulisboa.tecnico.cnv.webserver;
 import java.io.IOException;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
+
+import java.io.OutputStream;
 import java.net.URI;
 
 public class RootHandler implements HttpHandler {
 
-    private final String HELLO_MSG = "Default Web Server<br>";
+    private final String HELLO_MSG = "Games@Cloud";
 
     @Override
     public void handle(HttpExchange he) throws IOException {
@@ -29,5 +31,8 @@ public class RootHandler implements HttpHandler {
         System.out.println(query);
 
         he.sendResponseHeaders(200, 0);
+        OutputStream os = he.getResponseBody();
+        os.write(query.getBytes());
+        os.close();
     }
 }
