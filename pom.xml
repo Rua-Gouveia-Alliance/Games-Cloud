@@ -18,5 +18,6 @@
 		<module>gameoflife</module>
 		<module>fifteenpuzzle</module>
 		<module>capturetheflag</module>
+		<module>autoscaler</module>
 	</modules>
 </project>
