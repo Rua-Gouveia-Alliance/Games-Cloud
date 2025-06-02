@@ -65,7 +65,7 @@ public class ICount extends CodeDumper {
                 behavior.getLongName()));
 
         String behaviorName = behavior.getName();
-        if (behaviorName.equals("handle") || behaviorName.equals("handleRequest")) {
+        if (behaviorName.equals("handleWorkload")) {
             behavior.insertBefore(String.format("%s.resetStatistics();", ICount.class.getName()));
             behavior.insertAfter(
                     String.format("%s.printStatistics(this.getClass().getSimpleName());",
