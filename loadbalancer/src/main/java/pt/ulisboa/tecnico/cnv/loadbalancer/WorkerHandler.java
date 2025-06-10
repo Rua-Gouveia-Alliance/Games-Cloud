@@ -11,6 +11,7 @@ public class WorkerHandler extends Thread {
     private final String ip = "127.0.0.1";
 
     public ConcurrentQueue<Request> queue = new ConcurrentQueue<>();
+    private Request currentRequest;
 
     public WorkerHandler(int port) {
         this.port = port;
@@ -27,9 +28,10 @@ public class WorkerHandler extends Thread {
                     }
                 }
 
-                Request req = queue.pop();
-                processRequest(req);
-                sendResponse(req);
+                currentRequest = queue.pop();
+                processRequest(currentRequest);
+                sendResponse(currentRequest);
+                currentRequest = null;
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -54,6 +56,19 @@ public class WorkerHandler extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public long getCurrentWorkload() {
+        long total = 0;
+        for (Request req : queue.getContainer()) {
+            total += req.calculateWorkload();
+        }
+
+        if (currentRequest != null) {
+            total += currentRequest.calculateWorkload();
+        }
+
+        return total;
     }
 
 }

@@ -6,8 +6,9 @@ import pt.ulisboa.tecnico.cnv.loadbalancer.util.HttpUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LoadBalancer {
@@ -23,8 +24,9 @@ public class LoadBalancer {
     private static final int LB_PORT = 8080;
     private static final String WORKER_IP = "127.0.0.1"; // For local testing
     private static final int WORKER_BASE_PORT = 8000; // For local testing
+    private static final long MAX_WORKLOAD = 100000; // TODO
 
-    private final List<WorkerHandler> workers = new CopyOnWriteArrayList<>();
+    private final List<WorkerHandler> workers = new ArrayList<>();
     private final AtomicInteger currentWorkerIndex = new AtomicInteger(0);
 
     private Autoscaler autoscaler = new Autoscaler();
@@ -65,20 +67,46 @@ public class LoadBalancer {
     }
 
     private void delegateToWorker(Request req) {
-        WorkerHandler chosenWorker = chooseWorker();
+        WorkerHandler chosenWorker = chooseWorker(req);
+        if (chosenWorker == null) {
+            useLambda(req);
+            return;
+        }
+
         chosenWorker.queue.push(req);
         synchronized (chosenWorker.queue.cond) {
             chosenWorker.queue.notifyChange();
         }
     }
 
-    private WorkerHandler chooseWorker() {
+    private WorkerHandler chooseWorker(Request req) {
+        // TODO sync access to workers list
+
         if (workers.isEmpty()) {
-            throw new IllegalStateException("No available workers");
+            return null;
         }
 
-        //TODO: Load-Balancer choosing Logic
-        int index = currentWorkerIndex.getAndUpdate(i -> (i + 1) % workers.size());
-        return workers.get(index);
+        ArrayList<Long> scores = new ArrayList<>(workers.size());
+
+        long newReqWorkload = req.calculateWorkload();
+        boolean available = false;
+        for (int i = 0; i < workers.size(); i++) {
+            long workerWorkload = workers.get(i).getCurrentWorkload();
+            if (workerWorkload + newReqWorkload > MAX_WORKLOAD) {
+                scores.set(i, Long.MAX_VALUE);
+            } else {
+                scores.set(i, (long) workerWorkload);
+                available = true;
+            }
+        }
+
+        if (!available) {
+            return null;
+        }
+        return workers.get(scores.indexOf(Collections.min(scores)));
+    }
+
+    private void useLambda(Request req) {
+        // TODO execute req with a lambda
     }
 }

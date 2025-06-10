@@ -11,4 +11,9 @@ public class Request {
         this.path = path;
         this.exchange = exchange;
     }
+
+    public long calculateWorkload() {
+        // TODO calculate workload with the help of dynamo metrics
+        return 0;
+    }
 }
