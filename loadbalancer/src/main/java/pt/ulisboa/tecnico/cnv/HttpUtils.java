@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.cnv;
+package pt.ulisboa.tecnico.cnv.loadbalancer;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -10,7 +10,16 @@ import java.net.http.HttpResponse;
 public class HttpUtils {
 
     private static final HttpClient client = HttpClient.newHttpClient();
-    public record ParsedRequest(String method, String path, String httpVersion) {}
+    public static class ParsedRequest {
+        private String method;
+        private String path;
+        private String httpVersion;
+        ParsedRequest(String method, String path, String httpVersion) {
+            this.method = method;
+            this.path = path;
+            this.httpVersion = httpVersion;
+        }
+    }
 
     public static String sendGet(String ip, int port, String path) throws IOException, InterruptedException {
         HttpRequest request = HttpRequest.newBuilder()
@@ -31,7 +40,7 @@ public class HttpUtils {
         out.write(responseBody);
         out.flush();
     }
-    
+
     public static void sendError(BufferedWriter out, int statusCode, String message) throws IOException {
         out.write("HTTP/1.1 " + statusCode + " " + message + "\r\n");
         out.write("Content-Length: 0\r\n");

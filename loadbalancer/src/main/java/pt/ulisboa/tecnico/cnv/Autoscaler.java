@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.cnv.autoscaler;
+package pt.ulisboa.tecnico.cnv.loadbalancer;
 
 import java.math.BigDecimal;
 
