@@ -14,24 +14,22 @@ public class Autoscaler {
 
     static private class WorkerInfo {
         double price;
-        double latency;
         double capacity;
 
-        public WorkerInfo(double price, double latency, double capacity) {
+        public WorkerInfo(double price, double capacity) {
             this.price = price;
-            this.latency = latency;
             this.capacity = capacity;
         }
     }
 
     static private HashMap<String, WorkerInfo> workers = new HashMap<>() {
         {
-            put("VM", new WorkerInfo(5.0, 20.0, 1.0));
-            put("FaaS", new WorkerInfo(100.0, 10.0, 1.0));
+            // Since we're only using a single type of VM, price can be set to anything
+            put("VM", new WorkerInfo(1.0, 1.0));
         }
     };
 
-    static private HashMap<String, BigDecimal> computeConfiguration(Double lambda, Double B) {
+    static private HashMap<String, BigDecimal> computeConfiguration(Double lambda) {
         HashMap<String, AbstractMap.SimpleEntry<Integer, Variable>> variables = new HashMap<>();
         ExpressionsBasedModel model = new ExpressionsBasedModel();
 
@@ -39,9 +37,8 @@ public class Autoscaler {
         for (Map.Entry<String, WorkerInfo> e : workers.entrySet()) {
             String name = e.getKey();
             WorkerInfo info = e.getValue();
-            AbstractMap.SimpleEntry<Integer, Variable> entry =
-                    new AbstractMap.SimpleEntry<>(i++, model.newVariable(name).integer(true)
-                            .lower(0).weight(info.price + B * info.latency));
+            AbstractMap.SimpleEntry<Integer, Variable> entry = new AbstractMap.SimpleEntry<>(i++,
+                    model.newVariable(name).integer(true).lower(0).weight(info.price));
             variables.put(name, entry);
         }
 
@@ -54,7 +51,7 @@ public class Autoscaler {
         }
         capacity.lower(lambda);
 
-        // Minimize cost + B * latency
+        // Minimize cost
         Optimisation.Result result = model.minimise();
 
         HashMap<String, BigDecimal> configuration = new HashMap<>();
@@ -65,24 +62,20 @@ public class Autoscaler {
             BigDecimal count = result.get(entry.getKey().intValue());
             configuration.put(name, count);
         }
-        System.out.println("Total cost (price + latency): " + result.getValue());
+        System.out.println("Total cost: " + result.getValue());
         return configuration;
     }
 
     public static void main(String[] args) {
-        if (args.length < 2) {
-            System.out.println(
-                    "Usage: java pt.ulisboa.tecnico.cnv.autoscaler.Autoscaler <lambda> <B>");
+        if (args.length < 1) {
+            System.out.println("Usage: java pt.ulisboa.tecnico.cnv.autoscaler.Autoscaler <lambda>");
             return;
         }
 
         Double lambda = Double.parseDouble(args[0]);
-        Double B = Double.parseDouble(args[1]);
-
-        HashMap<String, BigDecimal> config = computeConfiguration(lambda, B);
+        HashMap<String, BigDecimal> config = computeConfiguration(lambda);
         for (Map.Entry<String, BigDecimal> e : config.entrySet()) {
             System.out.println(e.getKey() + ": " + e.getValue());
         }
     }
 }
-//
