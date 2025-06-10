@@ -29,7 +29,7 @@ public class LoadBalancer {
     private final List<WorkerHandler> workers = new ArrayList<>();
     private final AtomicInteger currentWorkerIndex = new AtomicInteger(0);
 
-    private Autoscaler autoscaler = new Autoscaler();
+    private final Autoscaler autoscaler = new Autoscaler(workers); // TODO sync
 
     public static void main(String[] args) throws IOException {
         new LoadBalancer().start();
@@ -38,6 +38,10 @@ public class LoadBalancer {
     private void start() throws IOException {
         // Start initial worker
         workers.add(new WorkerHandler(WORKER_BASE_PORT));
+        workers.get(0).start();
+
+        // Start autoscaler
+        autoscaler.start();
 
         // Start load balancer server
         HttpUtils.createServer(LB_PORT, new LoadBalancerHandler());

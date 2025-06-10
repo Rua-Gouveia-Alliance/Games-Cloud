@@ -1,16 +1,23 @@
 package pt.ulisboa.tecnico.cnv.loadbalancer;
 
-import java.math.BigDecimal;
-
+import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
+import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
+
+import java.math.BigDecimal;
 import java.util.AbstractMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import org.ojalgo.optimisation.Expression;
-import org.ojalgo.optimisation.Optimisation;
 
-public class Autoscaler {
+public class Autoscaler extends Thread {
+
+    private final List<WorkerHandler> lbWorkers; // TODO sync
+
+    public Autoscaler(List<WorkerHandler> workers) {
+        this.lbWorkers = workers;
+    }
 
     static private class WorkerInfo {
         double price;
@@ -66,16 +73,27 @@ public class Autoscaler {
         return configuration;
     }
 
-    public static void main(String[] args) {
-        if (args.length < 1) {
-            System.out.println("Usage: java pt.ulisboa.tecnico.cnv.autoscaler.Autoscaler <lambda>");
-            return;
-        }
+    private long getCurrentLambda() {
+        // TODO calculate lambda based on cloudwatch and current vm utilization (he can retrieve this from loadbalancer)
+        return 0;
+    }
 
-        double lambda = Double.parseDouble(args[0]);
-        HashMap<String, BigDecimal> config = computeConfiguration(lambda);
-        for (Map.Entry<String, BigDecimal> e : config.entrySet()) {
-            System.out.println(e.getKey() + ": " + e.getValue());
+    @Override
+    public void run() {
+        while (true) {
+            long lambda = getCurrentLambda();
+            HashMap<String, BigDecimal> config = computeConfiguration(lambda);
+            for (Map.Entry<String, BigDecimal> e : config.entrySet()) {
+                System.out.println(e.getKey() + ": " + e.getValue());
+            }
+
+            // TODO scale-in or scale-out based on the info
+
+            try {
+                sleep(5000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 }
