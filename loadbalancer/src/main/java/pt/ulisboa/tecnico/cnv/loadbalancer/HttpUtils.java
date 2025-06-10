@@ -1,11 +1,16 @@
 package pt.ulisboa.tecnico.cnv.loadbalancer;
 
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.concurrent.Executors;
 
 public class HttpUtils {
 
@@ -19,6 +24,14 @@ public class HttpUtils {
             this.path = path;
             this.httpVersion = httpVersion;
         }
+    }
+
+    public static HttpServer createServer(int port, HttpHandler handler) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+        server.createContext("/", handler);
+        server.setExecutor(Executors.newCachedThreadPool());
+        server.start();
+        return server;
     }
 
     public static String sendGet(String ip, int port, String path) throws IOException, InterruptedException {
