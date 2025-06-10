@@ -6,6 +6,7 @@ output
 **/.classpath
 **/.mvn
 *.pem
+config.sh
 rootkey.csv
 image.id
 instance.dns

@@ -1,5 +1,5 @@
-package pt.ulisboa.tecnico.cnv.loadbalancer.util;
-/*
+package pt.ulisboa.tecnico.cnv.aws;
+
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 import software.amazon.awssdk.regions.Region;
@@ -10,17 +10,23 @@ import java.util.UUID;
 
 public class DynamoDbUtils {
 
-    private static final String TABLE_NAME = "RequestMetrics";
+    private static final String TABLE_NAME = "MetricStorageSystem";
 
     private static final DynamoDbClient dynamoDb = DynamoDbClient.builder()
-            .region(Region.EU_WEST_1) // Set your AWS region
+            .region(Region.EU_WEST_3)
             .build();
 
-    public static void logRequestMetric(String workerIp, long durationMs) {
+    public static void logExecutionMetrics(String workerIp,
+                                           long durationMs,
+                                           long instructionsExecuted,
+                                           long methodsExecuted) {
+
         Map<String, AttributeValue> item = new HashMap<>();
         item.put("RequestId", AttributeValue.fromS(UUID.randomUUID().toString()));
         item.put("WorkerIP", AttributeValue.fromS(workerIp));
-        item.put("DurationMs", AttributeValue.fromN(Long.toString(durationMs)));
+        item.put("ExecutionDurationMs", AttributeValue.fromN(Long.toString(durationMs)));
+        item.put("InstructionsExecuted", AttributeValue.fromN(Long.toString(instructionsExecuted)));
+        item.put("MethodsExecuted", AttributeValue.fromN(Long.toString(methodsExecuted)));
         item.put("Timestamp", AttributeValue.fromN(Long.toString(System.currentTimeMillis())));
 
         PutItemRequest request = PutItemRequest.builder()
@@ -31,7 +37,7 @@ public class DynamoDbUtils {
         dynamoDb.putItem(request);
     }
 
-    // Example: fetch recent metrics (optional helper)
+
     public static void printRecentMetrics() {
         ScanRequest scanRequest = ScanRequest.builder()
                 .tableName(TABLE_NAME)
@@ -45,4 +51,3 @@ public class DynamoDbUtils {
     }
 }
 
-*/
