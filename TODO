@@ -1,0 +1,17 @@
+Load balancer:
+
+-> ouve pedidos
+-> escolhe VM (formula que leva em conta workload), ou lambda se estiver tudo cheio
+-> mete na queue da VM escolhida
+
+Auto-scaler:
+
+-> monitora dynamo e cloudwatch alarms
+-> coloca numa formula para saber quando dar scale-in/scale-out
+-> quando for dar scale-in percebe atraves do load balancer se a VM esta livre para poder ser retirada
+
+Worker VMs:
+
+-> novas metricas
+-> mandar metricas para o dynamo
+
