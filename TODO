@@ -1,8 +1,6 @@
 Load balancer:
 
--> ouve pedidos
 -> escolhe VM (formula que leva em conta workload), ou lambda se estiver tudo cheio
--> mete na queue da VM escolhida
 
 Auto-scaler:
 

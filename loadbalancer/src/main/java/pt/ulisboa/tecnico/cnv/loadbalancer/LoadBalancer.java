@@ -2,6 +2,7 @@ package pt.ulisboa.tecnico.cnv.loadbalancer;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import pt.ulisboa.tecnico.cnv.loadbalancer.util.HttpUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -47,19 +48,11 @@ public class LoadBalancer {
         public void handle(HttpExchange exchange) throws IOException {
             try {
                 String requestPath = exchange.getRequestURI().getPath();
-                System.out.println(requestPath);
                 String query = exchange.getRequestURI().getQuery();
-                System.out.println(query);
                 String fullPath = requestPath + (query != null ? "?" + query : "");
-                System.out.println(fullPath);
 
-                String response = delegateToWorker(fullPath);
-
-                exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
-                exchange.sendResponseHeaders(200, response.length());
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(response.getBytes());
-                }
+                Request req = new Request(fullPath, exchange);
+                delegateToWorker(req);
             } catch (Exception e) {
                 String error = "Error processing request: " + e.getMessage();
                 exchange.sendResponseHeaders(500, error.length());
@@ -71,13 +64,11 @@ public class LoadBalancer {
 
     }
 
-    private String delegateToWorker(String path) {
+    private void delegateToWorker(Request req) {
         WorkerHandler chosenWorker = chooseWorker();
-        try {
-            return chosenWorker.processRequest(path);
-        } catch (IOException | InterruptedException e) {
-            workers.remove(chosenWorker);
-            return "Error processing request: " + e.getMessage();
+        chosenWorker.queue.push(req);
+        synchronized (chosenWorker.queue.cond) {
+            chosenWorker.queue.notifyChange();
         }
     }
 
