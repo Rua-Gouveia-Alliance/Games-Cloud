@@ -80,8 +80,8 @@ public class AutoScaler {
     // Getters
     public int getUnresolvedRequestCount() { return unresolvedRequestCount.get(); }
 
-    public List<WorkerHandler> getWorkerPorts() {
+    public List<WorkerHandler> getWorkers() {
         return new ArrayList<>(workers);
     }
-    public Integer getTotalWorkers() { return workers.size(); }
+    public Integer getWorkersTotalNumber() { return workers.size(); }
 }

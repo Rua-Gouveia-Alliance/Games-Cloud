@@ -104,7 +104,7 @@ public class LoadBalancer {
 
         // 1. LB CHECKS FOR AVAILABLE WORKER BY TALKING WITH AUTO-SCALER (syncWorkers())
         // List<String> liveWorkers = getLiveWorkers();        // for IP addresses instead of Ports
-        List<Integer> liveWorkers = getLiveWorkers();
+        List<WorkerHandler> liveWorkers = getLiveWorkers();
 
         // 2. WITHIN THE AVAILABLE WORKERS, LB WILL PERFORM A CALCULATION TO FIND THE BEST SUITOR
         // System.out.println("Forwarding to worker port " + chosen.getPort() + " (queue=" + chosen.getQueueSize() + ")");
@@ -113,10 +113,8 @@ public class LoadBalancer {
         return null;
     }
 
-    private List<Integer> getLiveWorkers() {
+    private List<WorkerHandler> getLiveWorkers() {
         // 1. LB CHECKS AUTO-SCALER LIST OF WORKERS
-        return autoScaler.getWorkerPorts();
+        return autoScaler.getWorkers();
     }
-
-
 }
