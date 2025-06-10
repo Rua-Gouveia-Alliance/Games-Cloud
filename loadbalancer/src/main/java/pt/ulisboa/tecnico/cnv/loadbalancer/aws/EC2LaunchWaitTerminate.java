@@ -1,4 +1,4 @@
-package pt.ulisboa.tecnico.cnv.aws;
+package pt.ulisboa.tecnico.cnv.loadbalancer.aws;
 
 import software.amazon.awssdk.auth.credentials.EnvironmentVariableCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
