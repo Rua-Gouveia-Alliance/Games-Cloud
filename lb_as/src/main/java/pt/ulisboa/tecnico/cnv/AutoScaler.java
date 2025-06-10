@@ -10,9 +10,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class AutoScaler {
 
-    // List of worker instance IPs managed by AutoScaler
+    // 1. AUTO-SCALER WILL BE CONSTANTLY CHECKING FOR UPDATES BY READING METRICS IN DATABASE
+    // 2. BASED ON THESE METRICS, IT WILL DECIDE TO SCALE UP, DOWN, OR KEEP THE SAME AMOUNT
+    // 3. FOR NOW, USING SIMULATED METRICS
+
     //private final CopyOnWriteArrayList<String> workerIPs = new CopyOnWriteArrayList<>();
-    private final CopyOnWriteArrayList<Integer> workerPorts = new CopyOnWriteArrayList<>();
+    private final CopyOnWriteArrayList<WorkerHandler> workers = new CopyOnWriteArrayList<>();
 
     // Configurable thresholds
     private static final int MAX_REQUESTS_PER_WORKER = 2;
@@ -21,71 +24,64 @@ public class AutoScaler {
 
     private static final int BASE_PORT = 8000; // Starting worker port
 
-    // Simulated metric: total incoming requests count
-    private AtomicInteger incomingRequestCount = new AtomicInteger(0);
+    // Simulated metrics: unresolved request count
+    // In reality, the metrics it uses are written by the WorkerHandlers to Storage and A-S goes fetch them
     private final AtomicInteger unresolvedRequestCount = new AtomicInteger(0);
 
     public AutoScaler() {
-        workerPorts.add(BASE_PORT);
-
+        workers.add(new WorkerHandler(BASE_PORT));
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
         scheduler.scheduleAtFixedRate(this::checkAndScale,
                 0, 5, TimeUnit.SECONDS);
     }
 
-    // Called by LB to update current request load
-    public void incrementIncomingRequestCount() {
-        incomingRequestCount.incrementAndGet();
+    public void checkAndScale() {
+        // TODO: Instead of simulated metrics, use real ones from DB
+
+        int requestCount = getUnresolvedRequestCount();
+        System.out.println("Unresolved Request count: " + requestCount);
+
+        int currentWorkers = workers.size();
+        int idealWorkers = (requestCount / MAX_REQUESTS_PER_WORKER) + 1;
+
+        System.out.println("Ideal Workers: " + idealWorkers);
+
+        if (idealWorkers > currentWorkers && currentWorkers < MAX_WORKERS) {    // SCALE UP
+            launchNewWorkerInstance();
+        } else if (idealWorkers < currentWorkers && currentWorkers > MIN_WORKERS) { // SCALE DOWN
+            // TODO: Decide which worker to terminate. For now, highest port
+            terminateWorkerInstance(workers.size()-1);
+        }
     }
 
-    // Called by LB to update current request load
+    private void launchNewWorkerInstance() {
+        // Use AWS SDK to launch EC2 instance, install server, etc.
+        // Return new worker private IP
+        WorkerHandler newWorker = new WorkerHandler(BASE_PORT + workers.size());
+        workers.add(newWorker);
+        System.out.println("Scaled UP: added worker " + newWorker.getPort());
+    }
+
+    private void terminateWorkerInstance(int index) {
+        // Use AWS SDK to terminate EC2 instance by IP or ID
+        workers.get(index).shutdown();
+        workers.remove(index);
+        System.out.println("Scaled DOWN: removed worker " + workers.get(index).getPort());
+    }
+
+    // Setters
+    public void incrementUnresolvedRequestCount() {
+        unresolvedRequestCount.incrementAndGet();
+    }
     public void decrementUnresolvedRequestCount() {
         unresolvedRequestCount.decrementAndGet();
     }
 
-    // Called by LB to update current request load
-    public int getUnresolvedRequestCount() {
-        return unresolvedRequestCount.get();
+    // Getters
+    public int getUnresolvedRequestCount() { return unresolvedRequestCount.get(); }
+
+    public List<WorkerHandler> getWorkerPorts() {
+        return new ArrayList<>(workers);
     }
-
-    // Expose current worker IPs for LoadBalancer to use
-    public List<Integer> getWorkerPorts() {
-        return new ArrayList<>(workerPorts);
-    }
-
-    // Periodically called by LoadBalancer or scheduled internally
-    public void checkAndScale() {
-        int requestCount = incomingRequestCount.getAndSet(0);
-        System.out.println("Incoming Requests count: " + requestCount);
-
-        unresolvedRequestCount.addAndGet(requestCount);
-        System.out.println("Unresolved Requests count: " + unresolvedRequestCount);
-
-        int currentWorkers = workerPorts.size();
-        int idealWorkers = (unresolvedRequestCount.get() / MAX_REQUESTS_PER_WORKER) + 1;
-
-        System.out.println("Ideal Workers: " + idealWorkers);
-
-        if (idealWorkers > currentWorkers && currentWorkers < MAX_WORKERS) {
-            // scale up
-            int newWorkerPort = launchNewWorkerInstance();
-            workerPorts.add(newWorkerPort);
-            System.out.println("Scaled UP: added worker " + newWorkerPort);
-        } else if (idealWorkers < currentWorkers && currentWorkers > MIN_WORKERS) {
-            // scale down
-            int removedWorkerPort = workerPorts.remove(workerPorts.size() - 1);
-            terminateWorkerInstance(removedWorkerPort);
-            System.out.println("Scaled DOWN: removed worker " + removedWorkerPort);
-        }
-    }
-
-    private int launchNewWorkerInstance() {
-        // Use AWS SDK to launch EC2 instance, install server, etc.
-        // Return new worker private IP
-        return BASE_PORT + workerPorts.size();
-    }
-
-    private void terminateWorkerInstance(int ip) {
-        // Use AWS SDK to terminate EC2 instance by IP or ID
-    }
+    public Integer getTotalWorkers() { return workers.size(); }
 }

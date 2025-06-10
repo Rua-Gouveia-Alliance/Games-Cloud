@@ -1,68 +1,103 @@
 package pt.ulisboa.tecnico.cnv;
 
-import java.net.SocketTimeoutException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class WorkerHandler {
+
+    // 1. WORKER HANDLER REPRESENTS THE VM WORKER
+    // 2. IT HAS A QUEUE OF REQUESTS TO PROCESS, PROCESSES ONE AT A TIME, STARTS BY LAST REQUEST IN THE LIST
+    // 3. AFTER PROCESSING, RESPONDS TO LOAD-BALANCER AND WRITES METRICS TO DATABASE
+    // NOTE: LAMBDA-HANDLER CAN BE A TWIN CLASS FOR FAAS WORKERS
+
+    public static class RequestTask {
+        public final String requestPath;
+        public String response;
+
+        public RequestTask(String path) {
+            this.requestPath = path;
+        }
+    }
+
     private final int port;
+    private final String ip = "127.0.0.1";
+    private volatile boolean isBusy = true;
     private final ExecutorService executor;
+    private final BlockingQueue<RequestTask> queue = new LinkedBlockingQueue<>();
     private final AtomicInteger queueSize = new AtomicInteger(0);
+
 
     public WorkerHandler(int port) {
         this.port = port;
         this.executor = Executors.newSingleThreadExecutor(); // single-threaded executor
+        startConsumerLoop();
     }
 
-    public void enqueue(RequestTask task) {
-        queueSize.incrementAndGet(); // track task
+    private void startConsumerLoop() {
         executor.submit(() -> {
-            try {
-                String normalized = task.path.startsWith("/") ? task.path.substring(1) : task.path;
-                String response = HttpUtils.get("127.0.0.1", port, normalized);
-                System.out.println("Processed by worker on port " + port + ".");
-                task.responseFuture.complete(response);
-            } catch (SocketTimeoutException e) {
-                task.responseFuture.completeExceptionally(e);
-                System.err.println("Timeout in worker " + port + ": " + e.getMessage());
-            } catch (Exception e) {
-                task.responseFuture.completeExceptionally(e);
-                System.err.println("Error in worker " + port + ": " + e.getMessage());
-            } finally {
-                queueSize.decrementAndGet(); // task done
+            while (isBusy) {
+                try {
+                    // This blocks until a task is available
+                    RequestTask task = queue.take();
+                    queueSize.decrementAndGet();
+
+                    isBusy = true;
+
+                    String path = task.requestPath;
+                    String normalized = path.startsWith("/") ? path.substring(1) : path;
+
+                    task.response = processRequest(normalized);
+
+                    // TODO: respond to load-balancer, write metrics, etc.
+                    //
+
+                } catch (InterruptedException ie) {
+                    // If shutting down, break; otherwise, restore interrupt and continue
+                    Thread.currentThread().interrupt();
+                    break;
+                } catch (IOException e) {
+                    System.err.println("Error processing request: " + e.getMessage());
+                } finally {
+                    isBusy = false;
+                }
             }
         });
     }
 
-    public int getQueueSize() {
-        return queueSize.get();
-    }
-    public int getPort() {
-        return port;
+    // Request Processing
+    public String processRequest(String request) throws IOException, InterruptedException {
+        return HttpUtils.sendGet(this.ip, this.port, request);
     }
 
+    public void notifyLoadBalancer(String response) throws IOException {
+        //TODO: Send response back to Load-Balancer
+    }
+
+    // Shut down cleanly when you’re done with this worker:
     public void shutdown() {
+        isBusy = false;
         executor.shutdown();
-        try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException ignored) {
-            executor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
     }
 
-    public static class RequestTask {
-        public final String path;
-        public final CompletableFuture<String> responseFuture;
-
-        public RequestTask(String path) {
-            this.path = path;
-            this.responseFuture = new CompletableFuture<>();
-        }
+    // Setters
+    public void enqueueRequest(RequestTask task) {
+        queue.add(task);
+        queueSize.incrementAndGet();
     }
+    public void enqueueRequests(List<RequestTask> tasks) {
+        queue.addAll(tasks);
+        queueSize.addAndGet(tasks.size());
+    }
+
+    // Getters
+    public String getWorkerIP() { return ip; }
+    public boolean isBusy() { return isBusy; }
+    public BlockingQueue<RequestTask> getQueue() { return queue; }
+    public int getQueueSize() { return queueSize.get(); }
+    public int getPort() { return port; }
+
+
+
 }
