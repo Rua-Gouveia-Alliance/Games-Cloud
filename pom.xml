@@ -13,6 +13,7 @@
 		sorts the projects into the correct build order;
 		builds the selected projects in order. -->
 	<modules>
+        <module>lb_as</module>
 		<module>webserver</module>
 		<module>javassist</module>
 		<module>gameoflife</module>

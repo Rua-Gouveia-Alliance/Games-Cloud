@@ -2,14 +2,23 @@ package pt.ulisboa.tecnico.cnv.webserver;
 
 import java.net.InetSocketAddress;
 import com.sun.net.httpserver.HttpServer;
-
 import pt.ulisboa.tecnico.cnv.capturetheflag.CaptureTheFlagHandler;
 import pt.ulisboa.tecnico.cnv.fifteenpuzzle.FifteenPuzzleHandler;
 import pt.ulisboa.tecnico.cnv.gameoflife.GameOfLifeHandler;
 
 public class WebServer {
     public static void main(String[] args) throws Exception {
-        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+        int port = 8000; // Default port
+        if (args.length > 0) {
+            try {
+                port = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid port number. Using default port 8000.");
+            }
+        }
+
+        System.out.println("Starting worker on port " + port);
+        HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.setExecutor(java.util.concurrent.Executors.newCachedThreadPool());
         server.createContext("/", new RootHandler());
         server.createContext("/gameoflife", new GameOfLifeHandler());
@@ -18,3 +27,4 @@ public class WebServer {
         server.start();
     }
 }
+

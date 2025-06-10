@@ -4,6 +4,7 @@ output
 **/.project
 **/.settings
 **/.classpath
+**/.mvn
 *.pem
 rootkey.csv
 image.id
