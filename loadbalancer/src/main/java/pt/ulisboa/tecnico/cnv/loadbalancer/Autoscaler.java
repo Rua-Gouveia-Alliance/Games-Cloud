@@ -29,7 +29,7 @@ public class Autoscaler {
         }
     };
 
-    static private HashMap<String, BigDecimal> computeConfiguration(Double lambda) {
+    static private HashMap<String, BigDecimal> computeConfiguration(double lambda) {
         HashMap<String, AbstractMap.SimpleEntry<Integer, Variable>> variables = new HashMap<>();
         ExpressionsBasedModel model = new ExpressionsBasedModel();
 
@@ -72,7 +72,7 @@ public class Autoscaler {
             return;
         }
 
-        Double lambda = Double.parseDouble(args[0]);
+        double lambda = Double.parseDouble(args[0]);
         HashMap<String, BigDecimal> config = computeConfiguration(lambda);
         for (Map.Entry<String, BigDecimal> e : config.entrySet()) {
             System.out.println(e.getKey() + ": " + e.getValue());

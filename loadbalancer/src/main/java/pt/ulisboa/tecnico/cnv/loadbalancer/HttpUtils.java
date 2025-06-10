@@ -15,10 +15,12 @@ import java.util.concurrent.Executors;
 public class HttpUtils {
 
     private static final HttpClient client = HttpClient.newHttpClient();
+
     public static class ParsedRequest {
         private String method;
         private String path;
         private String httpVersion;
+
         ParsedRequest(String method, String path, String httpVersion) {
             this.method = method;
             this.path = path;
@@ -26,21 +28,24 @@ public class HttpUtils {
         }
     }
 
-    public static HttpServer createServer(int port, HttpHandler handler) throws IOException {
+    public static void createServer(int port, HttpHandler handler) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/", handler);
         server.setExecutor(Executors.newCachedThreadPool());
         server.start();
-        return server;
     }
 
     public static String sendGet(String ip, int port, String path) throws IOException, InterruptedException {
+        String cleanPath = path.startsWith("/") ? path.substring(1) : path;
+        String url = "http://" + ip + ":" + port + "/" + cleanPath;
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://" + ip + ":" + port + "/" + path))
+                .uri(URI.create(url))
                 .GET()
                 .build();
 
-        return client.send(request, HttpResponse.BodyHandlers.ofString()).body();
+        String response = client.send(request, HttpResponse.BodyHandlers.ofString()).body();
+        System.out.println(response);
+        return response;
     }
 
     public static void sendResponse(BufferedWriter out, String responseBody) throws IOException {
@@ -63,6 +68,7 @@ public class HttpUtils {
 
     /**
      * Parses an HTTP request line like "GET /path HTTP/1.1".
+     *
      * @param requestLine the first line of the HTTP request.
      * @return a ParsedRequest object or null if invalid.
      */

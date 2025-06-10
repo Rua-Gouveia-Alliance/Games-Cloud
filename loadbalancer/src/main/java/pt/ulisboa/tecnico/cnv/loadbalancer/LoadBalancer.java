@@ -2,12 +2,11 @@ package pt.ulisboa.tecnico.cnv.loadbalancer;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
 
-import java.io.*;
-import java.net.*;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class LoadBalancer {
@@ -25,8 +24,7 @@ public class LoadBalancer {
     private static final int WORKER_BASE_PORT = 8000; // For local testing
 
     private final List<WorkerHandler> workers = new CopyOnWriteArrayList<>();
-    private final AtomicInteger incomingRequestsCounter = new AtomicInteger(0);
-    private final AtomicInteger currentWorkerIndex  = new AtomicInteger(0);
+    private final AtomicInteger currentWorkerIndex = new AtomicInteger(0);
 
     private Autoscaler autoscaler = new Autoscaler();
 
@@ -39,22 +37,25 @@ public class LoadBalancer {
         workers.add(new WorkerHandler(WORKER_BASE_PORT));
 
         // Start load balancer server
-        HttpServer lbServer = HttpUtils.createServer(LB_PORT, new LoadBalancerHandler());
+        HttpUtils.createServer(LB_PORT, new LoadBalancerHandler());
         System.out.println("Load balancer started on port " + LB_PORT);
     }
 
     class LoadBalancerHandler implements HttpHandler {
+
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            incrementIncomingRequestsCounter();
-
             try {
                 String requestPath = exchange.getRequestURI().getPath();
+                System.out.println(requestPath);
                 String query = exchange.getRequestURI().getQuery();
+                System.out.println(query);
                 String fullPath = requestPath + (query != null ? "?" + query : "");
+                System.out.println(fullPath);
 
                 String response = delegateToWorker(fullPath);
 
+                exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
                 exchange.sendResponseHeaders(200, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(response.getBytes());
@@ -65,17 +66,9 @@ public class LoadBalancer {
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(error.getBytes());
                 }
-            } finally {
-                decrementIncomingRequestsCounter();
             }
         }
-    }
 
-    private void incrementIncomingRequestsCounter() {
-        incomingRequestsCounter.incrementAndGet();
-    }
-    private void decrementIncomingRequestsCounter() {
-        incomingRequestsCounter.decrementAndGet();
     }
 
     private String delegateToWorker(String path) {

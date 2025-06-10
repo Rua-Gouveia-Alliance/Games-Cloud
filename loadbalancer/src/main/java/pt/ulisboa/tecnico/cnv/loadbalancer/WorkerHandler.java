@@ -11,8 +11,7 @@ public class WorkerHandler {
     }
 
     public String processRequest(String request) throws IOException, InterruptedException {
-        String normalized = request.startsWith("/") ? request.substring(1) : request;
-        return HttpUtils.sendGet(ip, port, normalized);
+        return HttpUtils.sendGet(ip, port, request);
     }
 
     public int getPort() {
