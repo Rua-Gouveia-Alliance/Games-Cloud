@@ -15,17 +15,17 @@ public class ICount extends CodeDumper {
     /**
      * Number of executed basic blocks.
      */
-    private static final ThreadLocal<Long> nblocks = ThreadLocal.withInitial(() -> 0L);
+    private static final ThreadLocal<Integer> nblocks = ThreadLocal.withInitial(() -> 0);
 
     /**
      * Number of executed methods.
      */
-    private static final ThreadLocal<Long> nmethods = ThreadLocal.withInitial(() -> 0L);
+    private static final ThreadLocal<Integer> nmethods = ThreadLocal.withInitial(() -> 0);
 
     /**
      * Number of executed instructions.
      */
-    private static final ThreadLocal<Long> ninsts = ThreadLocal.withInitial(() -> 0L);
+    private static final ThreadLocal<Integer> ninsts = ThreadLocal.withInitial(() -> 0);
 
     public ICount(List<String> packageNameList, String writeDestination) {
         super(packageNameList, writeDestination);
@@ -41,9 +41,9 @@ public class ICount extends CodeDumper {
     }
 
     public static void resetStatistics() {
-        nblocks.set(0L);
-        nmethods.set(0L);
-        ninsts.set(0L);
+        nblocks.set(0);
+        nmethods.set(0);
+        ninsts.set(0);
     }
 
     public static void printStatistics(String className) {
@@ -70,18 +70,13 @@ public class ICount extends CodeDumper {
         String behaviorName = behavior.getName();
         if (behaviorName.equals("handleWorkload")) {
             behavior.insertBefore(String.format("%s.resetStatistics();", ICount.class.getName()));
-            behavior.insertAfter(
-                    String.format("%s.printStatistics(this.getClass().getSimpleName());",
-                            ICount.class.getName()),
-                    true);
 
-            behavior.insertAfter("{ "
-                    + "java.util.Map<String, Integer> params = new java.util.HashMap();"
+            behavior.insertAfter("{ " + "java.util.Map params = new java.util.HashMap();"
                     + "for (int i = 0; i < $args.length; i++) { "
                     + "if ($args[i] instanceof Integer) { "
-                    + "inputParams.put(\"arg\" + i, $args[i]);" + "} " + "} "
+                    + "params.put(\"arg\" + i, (Integer) $args[i]); } }"
                     + String.format(
-                            "%s.addMetric(new %s(this.getClass().getSimpleName(), %s.now(), inputParams, %d, %d, %d));",
+                            "%s.getInstance().addMetric(new %s(this.getClass().getSimpleName(), %s.now(), params, %d, %d, %d));",
                             MetricsCollector.class.getName(), Metric.class.getName(),
                             LocalDateTime.class.getName(), nmethods.get(), nblocks.get(),
                             ninsts.get())

@@ -9,12 +9,12 @@ public class Metric {
     private final String gameName; // Partition-Key
     private final String timestamp; // Sort-Key
     private final Map<String, Integer> params;
-    private final Long methods;
-    private final Long basicBlocks;
-    private final Long instructions;
+    private final Integer methods;
+    private final Integer basicBlocks;
+    private final Integer instructions;
 
-    public Metric(String gameName, LocalDateTime timestamp, Map<String, Integer> params, Long methods,
-            Long basicBlocks, Long instructions) {
+    public Metric(String gameName, LocalDateTime timestamp, Map<String, Integer> params,
+            int methods, int basicBlocks, int instructions) {
         this.gameName = gameName;
         this.params = params;
         this.methods = methods;
@@ -37,15 +37,15 @@ public class Metric {
         return params;
     }
 
-    public Long methods() {
+    public Integer methods() {
         return methods;
     }
 
-    public Long basicBlocks() {
+    public Integer basicBlocks() {
         return basicBlocks;
     }
 
-    public Long instructions() {
+    public Integer instructions() {
         return instructions;
     }
 
