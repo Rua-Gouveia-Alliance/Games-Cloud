@@ -13,9 +13,8 @@ import java.nio.charset.StandardCharsets;
 public class LambdaInvoker {
 
     private static final String REGION = "eu-west-3";
-    private static final String FUNCTION_NAME = "GamesCloudHandler"; // TODO deploy lambda with some script
 
-    public static String invokeLambda(String payloadJson) {
+    public static String invokeLambda(String function_name, String payloadJson) {
         Region region = Region.of(REGION);
 
         try (LambdaClient lambdaClient = LambdaClient.builder()
@@ -24,7 +23,7 @@ public class LambdaInvoker {
                 .build()) {
 
             InvokeRequest request = InvokeRequest.builder()
-                    .functionName(FUNCTION_NAME)
+                    .functionName(function_name)
                     .payload(SdkBytes.fromString(payloadJson, StandardCharsets.UTF_8))
                     .build();
 

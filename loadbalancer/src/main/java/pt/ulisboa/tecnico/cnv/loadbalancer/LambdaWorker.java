@@ -15,9 +15,12 @@ public class LambdaWorker extends Thread {
 
     @Override
     public void run() {
-        String json = "{ \"type\": \"" + req.getType() + "\", \"params\": \"" + req.getParams() + "\" }";
-        String response = LambdaInvoker.invokeLambda(json);
-        System.out.println("Lambda response: " + response);
+        String response = null;
+        while (response == null) {
+            String json = "{ \"params\": \"" + req.getParams() + "\" }";
+            response = LambdaInvoker.invokeLambda(req.getType() + "Handler", json);
+            System.out.println("Lambda response: " + response);
+        }
 
         try {
             req.exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
