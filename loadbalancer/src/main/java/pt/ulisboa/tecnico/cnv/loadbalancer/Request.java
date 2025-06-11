@@ -28,6 +28,7 @@ public class Request {
         ArrayList<Object> recentClosest = DynamoRetriever.retrieveRecentClosestMetric(this.getType(), this.getParamsDict(), 100);
         Map<String, Long> recent = (Map<String, Long>) recentClosest.get(0);
         double distance = (double) recentClosest.get(1);
+        Map<String, Integer> storedParams = (Map<String, Integer>) recentClosest.get(2);
 
         if (recent == null) {
             System.out.println("[Request] No metric found, assuming default workload of 0");
@@ -43,11 +44,24 @@ public class Request {
             // "If you have logs of real executions (with actual durations), you can compare those to the metrics and compute the best weights using a linear regression to predict duration from metrics."
             double workload = 1.0 * methods + 2.0 * blocks + 1.5 * instructions;
 
-            // Distance-based adjustment
-            // Example heuristic: 1% adjustment per unit of distance
-            double adjustmentFactor = 1.0 + (distance * 0.01);
-            double adjustedWorkload = workload * adjustmentFactor;
+            // Ratio-based adjustment: compare input "size" to closest metric
+            double inputSum = paramsDict.values().stream()
+                    .filter(v -> v != null)
+                    .mapToDouble(Integer::doubleValue)
+                    .sum();
 
+            double storedSum = storedParams.values().stream()
+                    .filter(v -> v != null)
+                    .mapToDouble(Integer::doubleValue)
+                    .sum();
+
+            double ratio = inputSum / (storedSum == 0 ? 1 : storedSum);
+            ratio = Math.max(0.5, Math.min(2.0, ratio));  // clamping
+
+            // Distance penalty for uncertainty
+            double uncertaintyPenalty = Math.log(1 + distance) * 0.05;
+
+            double adjustedWorkload = workload * ratio * (1 + uncertaintyPenalty);
             return Math.round(adjustedWorkload);
         } catch (Exception e) {
             System.out.println("[Request] Error parsing metric values: " + e.getMessage());

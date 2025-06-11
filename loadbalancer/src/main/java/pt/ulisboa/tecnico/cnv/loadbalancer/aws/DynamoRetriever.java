@@ -51,6 +51,7 @@ public class DynamoRetriever {
     public static ArrayList<Object> retrieveRecentClosestMetric(
             String gameName, Map<String, Integer> inputParams, int limit) {
         Map<String, Long> closestMetric = null;
+        Map<String, Integer> closestParams = null;
         double minDistance = Double.MAX_VALUE;
 
         QueryRequest queryRequest = QueryRequest.builder()
@@ -91,6 +92,7 @@ public class DynamoRetriever {
                     if (distance < minDistance) {
                         minDistance = distance;
                         closestMetric = metrics;
+                        closestParams = parsedParams;
                     }
                 }
             }
@@ -103,6 +105,7 @@ public class DynamoRetriever {
         ArrayList<Object> closestMetrics = new ArrayList<>();
         closestMetrics.add(closestMetric);
         closestMetrics.add(minDistance);
+        closestMetrics.add(closestParams);
         return closestMetrics;
     }
 
