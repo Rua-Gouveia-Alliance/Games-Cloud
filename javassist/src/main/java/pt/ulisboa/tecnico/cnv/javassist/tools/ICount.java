@@ -34,7 +34,9 @@ public class ICount extends CodeDumper {
         ninsts.set(ninsts.get() + length);
     }
 
-    public static void incBehavior(String name) { nmethods.set(nmethods.get() + 1); }
+    public static void incBehavior(String name) {
+        nmethods.set(nmethods.get() + 1);
+    }
 
     public static void resetStatistics() {
         nblocks.set(0L);
@@ -70,49 +72,36 @@ public class ICount extends CodeDumper {
                     String.format("%s.printStatistics(this.getClass().getSimpleName());",
                             ICount.class.getName()),
                     true);
+
+            insertMetric(behavior, MetricsCollector.METHODS_EXECUTED, nmethods.get());
+            insertMetric(behavior, MetricsCollector.BASIC_BLOCKS, nblocks.get());
+            insertMetric(behavior, MetricsCollector.INSTRUCTIONS, ninsts.get());
+            insertMetric(behavior, MetricsCollector.METHODS_EXECUTED, nmethods.get());
+            insertMetric(behavior, MetricsCollector.GAME_NAME, this.getClass().getSimpleName());
+            insertMetric(behavior, MetricsCollector.TIMESTAMP, System.currentTimeMillis());
+
+            behavior.insertAfter("{ " + "java.util.Map inputParams = new java.util.HashMap();"
+                    + "for (int i = 0; i < $args.length; i++) { "
+                    + "if ($args[i] instanceof Integer) { "
+                    + "inputParams.put(\"arg\" + i, $args[i]);" + "} " + "} "
+                    + MetricsCollector.class.getName() + ".getInstance().addMetric(\""
+                    + MetricsCollector.INPUT_PARAMS + "\", inputParams);" + " }", true);
         }
-
-        insertMetric(behavior, MetricsCollector.METHODS_EXECUTED, nmethods.get());
-        insertMetric(behavior, MetricsCollector.BASIC_BLOCKS, nblocks.get());
-        insertMetric(behavior, MetricsCollector.INSTRUCTIONS, ninsts.get());
-        insertMetric(behavior, MetricsCollector.METHODS_EXECUTED, nmethods.get());
-        insertMetric(behavior, MetricsCollector.GAME_NAME, this.getClass().getSimpleName());
-        insertMetric(behavior, MetricsCollector.TIMESTAMP, System.currentTimeMillis());
-
-        behavior.insertAfter(
-                "{ " +
-                        "java.util.Map inputParams = new java.util.HashMap();" +
-                        "for (int i = 0; i < $args.length; i++) { " +
-                        "if ($args[i] instanceof Integer) { " +
-                        "inputParams.put(\"arg\" + i, $args[i]);" +
-                        "} " +
-                        "} " +
-                        MetricsCollector.class.getName() + ".getInstance().addMetric(\"" +
-                        MetricsCollector.INPUT_PARAMS + "\", inputParams);" +
-                        " }",
-                true
-        );
     }
 
-    private void insertMetric(CtBehavior behavior, String key, Object value) throws CannotCompileException {
+    private void insertMetric(CtBehavior behavior, String key, Object value)
+            throws CannotCompileException {
         String insertCode;
 
         if (value instanceof Long) {
-            insertCode = String.format(
-                    "%s.getInstance().addMetric(\"%s\", Long.valueOf(%dL));",
-                    MetricsCollector.class.getName(),
-                    key,
-                    (Long) value
-            );
+            insertCode = String.format("%s.getInstance().addMetric(\"%s\", Long.valueOf(%dL));",
+                    MetricsCollector.class.getName(), key, (Long) value);
         } else if (value instanceof String) {
-            insertCode = String.format(
-                    "%s.getInstance().addMetric(\"%s\", \"%s\");",
-                    MetricsCollector.class.getName(),
-                    key,
-                    value
-            );
+            insertCode = String.format("%s.getInstance().addMetric(\"%s\", \"%s\");",
+                    MetricsCollector.class.getName(), key, value);
         } else {
-            throw new IllegalArgumentException("Unsupported metric type: " + value.getClass().getName());
+            throw new IllegalArgumentException(
+                    "Unsupported metric type: " + value.getClass().getName());
         }
         behavior.insertAfter(insertCode, true);
     }
