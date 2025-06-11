@@ -76,7 +76,7 @@ public class Autoscaler extends Thread {
     }
 
     private long getCurrentLambda() {
-        // TODO review this formula
+        // TODO review this formula (normalize)
 
         long lambda = 0;
 
@@ -118,7 +118,7 @@ public class Autoscaler extends Thread {
     public void scaleIn() {
         synchronized (lbWorkers) {
             for (WorkerHandler w : new ArrayList<>(lbWorkers)) {
-                if (w.getCurrentRequest() == null) {
+                if (w.getCurrentRequest() == null && w.queue.isEmpty()) {
                     lbWorkers.remove(w);
                     EC2InstanceManager.terminateInstance(w.instanceId);
                     break;

@@ -15,9 +15,6 @@ public class EC2InstanceManager {
     private static final String KEY_NAME = "mykeypair";
     private static final String SEC_GROUP_ID = "sg-bacf59c2";
 
-    // Time to wait before terminating (10 minutes)
-    private static final long WAIT_TIME = 1000 * 60 * 10;
-
     public static String createInstance() {
         // TODO configure instance
 

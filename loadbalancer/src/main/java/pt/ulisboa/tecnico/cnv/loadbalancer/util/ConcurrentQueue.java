@@ -59,6 +59,10 @@ public class ConcurrentQueue<E> {
         return this.queue.size();
     }
 
+    public boolean isEmpty() {
+        return this.queue.isEmpty();
+    }
+
     public ArrayDeque<E> getContainer() {
         return this.queue;
     }

@@ -100,7 +100,6 @@ public class LoadBalancer {
     }
 
     private void useLambda(Request req) {
-        LambdaWorker lambda = new LambdaWorker(req);
-        lambda.start();
+        new LambdaWorker(req).start();
     }
 }
