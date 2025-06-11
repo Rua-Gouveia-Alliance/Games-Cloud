@@ -8,16 +8,12 @@ import software.amazon.awssdk.services.ec2.model.*;
 import java.util.List;
 
 public class EC2InstanceManager {
-
-    // TODO: import from config.sh?
-    private static final String REGION = "us-east-1";
+    private static final String REGION = "eu-west-3";
     private static final String AMI_ID = "ami-045df467fe4d245ab";
-    private static final String KEY_NAME = "mykeypair";
-    private static final String SEC_GROUP_ID = "sg-bacf59c2";
+    private static final String KEY_NAME = "gac-aws-key";
+    private static final String SEC_GROUP_ID = "sg-02d5d0ab5b27c69f3";
 
     public static String createInstance() {
-        // TODO configure instance
-
         Region region = Region.of(REGION);
 
         try (Ec2Client ec2 = Ec2Client.builder()
