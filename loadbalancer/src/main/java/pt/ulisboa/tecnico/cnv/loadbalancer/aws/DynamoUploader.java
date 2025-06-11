@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
 import java.util.*;
 
+//TODO: Buffer timeout
 public class DynamoUploader {
 
     // TODO: Find region from environment?
@@ -21,8 +22,7 @@ public class DynamoUploader {
     // Called at the end of an instance execution, with the thread-specific MetricsCollector
     // simpleton mapping its
     // metrics to this global environment class
-    // TODO: Should this be synchronized?
-    public synchronized static void accumulateItems() {
+    public static void accumulateItem() {
         if (itemsToSend >= BUFFER_LIMIT) {
             System.out
                     .println("Buffer limit reached. Uploading Metrics and accumulating new item.");

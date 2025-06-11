@@ -66,4 +66,8 @@ public class ConcurrentQueue<E> {
     public ArrayDeque<E> getContainer() {
         return this.queue;
     }
+
+    public void clear() {
+        this.queue.clear();
+    }
 }

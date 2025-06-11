@@ -3,93 +3,98 @@ package pt.ulisboa.tecnico.cnv.loadbalancer.aws;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-
-// Pega numa request ou request.type e parametros
-// DBLoadAll(req.type, 10)
-// Distância Euclidiana dos parâmetros
-// Encontrar a mais próxima
 
 public class DynamoRetriever {
 
     private static final DynamoDbClient client = DynamoDbClient.create();
 
-    public static Map<String, Object> retrieveMetrics(String gameName, Integer last) {
-        Map<String, Object> metrics = new HashMap<>();
+    public static List<Map<String, Object>> retrieveMetrics(String gameName) {
+        List<Map<String, Object>> allMetrics = new ArrayList<>();
 
-        // Prepare the query request
         QueryRequest queryRequest = QueryRequest.builder()
                 .tableName("MetricStorageSystem")
                 .keyConditionExpression("GameName = :gameName")
                 .expressionAttributeValues(Map.of(":gameName", AttributeValue.fromS(gameName)))
                 .build();
-
         try {
-            // Query the DynamoDB table
             QueryResponse queryResponse = client.query(queryRequest);
-
-            // Process the results
             for (Map<String, AttributeValue> item : queryResponse.items()) {
-                // Convert the DynamoDB item back into the corresponding metrics
-                String timestamp = item.get("Timestamp").s(); // Assuming Timestamp is a string
-
-                // Assuming you store metrics in a key-value manner, you would process each attribute
+                Map<String, Object> metrics = new HashMap<>();
                 for (Map.Entry<String, AttributeValue> entry : item.entrySet()) {
                     String key = entry.getKey();
                     AttributeValue value = entry.getValue();
 
-                    // Add the metric to the result map
                     if (value.s() != null) {
                         metrics.put(key, value.s());
                     } else if (value.n() != null) {
-                        metrics.put(key, Integer.parseInt(value.n()));
+                        metrics.put(key, Long.parseLong(value.n()));
                     } else if (value.m() != null) {
-                        metrics.put(key, value.m());  // Handling nested maps if any
+                        metrics.put(key, value.m());
                     }
                 }
+                allMetrics.add(metrics);
             }
-
         } catch (DynamoDbException e) {
             System.err.println("Error querying DynamoDB: " + e.getMessage());
             e.printStackTrace();
         }
-
-        return metrics;
+        return allMetrics;
     }
 
-    // Optionally, you could implement a method to retrieve metrics for a given Timestamp range or other filters
-    public static Map<String, Object> retrieveMetricsByTimestampRange(String gameName, String startTimestamp, String endTimestamp) {
-        Map<String, Object> metrics = new HashMap<>();
+    public static Map<String, Object> retrieveRecentClosestMetric(
+            String gameName, Map<String, Number> inputParams, int limit) {
+        Map<String, Object> closestMetric = null;
+        double minDistance = Double.MAX_VALUE;
 
-        // Prepare the query request with timestamp range condition
         QueryRequest queryRequest = QueryRequest.builder()
                 .tableName("MetricStorageSystem")
-                .keyConditionExpression("GameName = :gameName and Timestamp between :startTimestamp and :endTimestamp")
-                .expressionAttributeValues(Map.of(
-                        ":gameName", AttributeValue.fromS(gameName),
-                        ":startTimestamp", AttributeValue.fromS(startTimestamp),
-                        ":endTimestamp", AttributeValue.fromS(endTimestamp)))
+                .keyConditionExpression("GameName = :gameName")
+                .expressionAttributeValues(Map.of(":gameName", AttributeValue.fromS(gameName)))
+                .scanIndexForward(false)
+                .limit(limit)
                 .build();
-
         try {
-            // Query the DynamoDB table with the timestamp range
             QueryResponse queryResponse = client.query(queryRequest);
-
-            // Process the results
             for (Map<String, AttributeValue> item : queryResponse.items()) {
-                // Convert the DynamoDB item back into the corresponding metrics
+                Map<String, Object> metrics = new HashMap<>();
+                Map<String, AttributeValue> storedInputParams = null;
                 for (Map.Entry<String, AttributeValue> entry : item.entrySet()) {
                     String key = entry.getKey();
                     AttributeValue value = entry.getValue();
 
-                    // Add the metric to the result map
                     if (value.s() != null) {
                         metrics.put(key, value.s());
                     } else if (value.n() != null) {
-                        metrics.put(key, Integer.parseInt(value.n()));
-                    } else if (value.m() != null) {
-                        metrics.put(key, value.m());  // Handling nested maps if any
+                        try {
+                            metrics.put(key, value.n().contains(".")
+                                    ? Double.parseDouble(value.n())
+                                    : Long.parseLong(value.n()));
+                        } catch (NumberFormatException e) {
+                            metrics.put(key, value.n());
+                        }
+                    } else if (value.m() != null && key.equals("InputParameters")) {
+                        storedInputParams = value.m();
+                        Map<String, Number> parsedParams = new HashMap<>();
+                        for (Map.Entry<String, AttributeValue> param : storedInputParams.entrySet()) {
+                            if (param.getValue() == null || param.getValue().n() == null) continue;
+                            parsedParams.put(param.getKey(),
+                                    param.getValue().n().contains(".")
+                                            ? Double.parseDouble(param.getValue().n())
+                                            : Long.parseLong(param.getValue().n()));
+                        }
+                        metrics.put("InputParameters", parsedParams);
+                    }
+                }
+
+                if (storedInputParams != null) {
+                    double distance = computeEuclideanDistance(inputParams, storedInputParams);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestMetric = metrics;
                     }
                 }
             }
@@ -99,6 +104,19 @@ public class DynamoRetriever {
             e.printStackTrace();
         }
 
-        return metrics;
+        return closestMetric;
     }
+
+    private static double computeEuclideanDistance(Map<String, Number> input, Map<String, AttributeValue> stored) {
+        double sum = 0.0;
+        for (String key : input.keySet()) {
+            if (!stored.containsKey(key)) continue;
+
+            double inputVal = input.get(key).doubleValue();
+            double storedVal = Double.parseDouble(stored.get(key).n());
+            sum += Math.pow(inputVal - storedVal, 2);
+        }
+        return Math.sqrt(sum);
+    }
+    
 }

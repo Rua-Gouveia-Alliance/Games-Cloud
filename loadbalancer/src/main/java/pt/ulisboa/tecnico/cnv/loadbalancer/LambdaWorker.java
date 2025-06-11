@@ -29,7 +29,7 @@ public class LambdaWorker extends Thread {
                 os.write(req.result.getBytes());
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("[LambdaWorker] Failed sending response to client: " + e.toString());
         }
     }
 }
