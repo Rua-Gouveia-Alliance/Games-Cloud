@@ -1,76 +1,58 @@
 package pt.ulisboa.tecnico.cnv.loadbalancer.aws;
 
-
 import pt.ulisboa.tecnico.cnv.loadbalancer.util.ConcurrentQueue;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
 import java.util.*;
+import java.util.Map.Entry;
 
+// TODO: Buffer timeout
 public class DynamoUploader {
 
     private static final DynamoDbClient client = DynamoDbClient.create();
-    private static final ConcurrentQueue<Map<String, AttributeValue>> itemsBuffer = new ConcurrentQueue<>();
+    private static final ConcurrentQueue<Map<String, AttributeValue>> itemsBuffer =
+            new ConcurrentQueue<>();
     private static final int BUFFER_LIMIT = 5;
-    private static final long BUFFER_TIMEOUT_MS = 60_000; // 1 minute
     private static int itemsToSend = 0;
-    private static long lastUploadTime = System.currentTimeMillis();
 
-    // Called at the end of an instance execution, with the thread-specific MetricsCollector simpleton mapping its
-    // metrics to this global environment class
+    // Called at the end of an instance execution, with the thread-specific MetricsCollector
+    // simpleton mapping its metrics to this global environment class
     public static void accumulateItem() {
         if (itemsToSend >= BUFFER_LIMIT) {
-            System.out.println("Buffer limit reached. Uploading Metrics and accumulating new item.");
+            System.out
+                    .println("Buffer limit reached. Uploading Metrics and accumulating new item.");
             uploadMetrics();
         }
-        itemsBuffer.push(mapMetricsToItem());
-        itemsToSend++;
-        lastUploadTime = System.currentTimeMillis(); // update last write attempt
-    }
 
-    public static Map<String, AttributeValue> mapMetricsToItem(Map<String, Object> metrics) {
-
-        Map<String, AttributeValue> item = new HashMap<>();
-        Set<Map<String, Object>> visited = new HashSet<>();
-
-        for (Map.Entry<String, Object> entry : metrics.entrySet()) {
-            String key = entry.getKey();
-            Object metric = entry.getValue();
-            AttributeValue attributeValue = null;
-
-            // Check if the metric is a nested Map
-            if (metric instanceof Map) {
-                if (visited.contains(metric)) {
-                    throw new IllegalStateException("Circular reference detected for key: " + key);
-                }
-                visited.add((Map<String, Object>) metric);
-                attributeValue = AttributeValue.builder()
-                        .m(mapMetricsToItem((Map<String, Object>) metric))
-                        .build();
-            } else if (metric instanceof String) {
-                attributeValue = AttributeValue.builder().s(metric.toString()).build();
-            } else if (metric instanceof Integer) {
-                attributeValue = AttributeValue.builder().n(Long.toString((Integer) metric)).build();
-            } else if (metric instanceof Long) {
-                attributeValue = AttributeValue.builder().n(Long.toString((Long) metric)).build();
-            } else {
-                // Handle other types, if any (you may want to throw an exception or log)
-                throw new IllegalArgumentException("Invalid metric type: " + metric.getClass().getName());
-            }
-            if (attributeValue != null) {
-                item.put(key, attributeValue);
-            }
-        };
-        System.out.printf("[Uploader] Sent to dynamo buffer: " + MetricsCollector.getInstance());
+        List<Metric> metrics = MetricsCollector.getInstance().getAllMetrics();
         MetricsCollector.getInstance().clearMetrics();
-        return item;
+        for (Metric m : metrics) {
+            itemsBuffer.push(metricToMap(m));
+            itemsToSend++;
+        }
     }
 
-    public static Map<String, AttributeValue> mapMetricsToItem() {
-        return mapMetricsToItem(MetricsCollector.getInstance().getAllMetrics());
+    private static Map<String, AttributeValue> metricToMap(Metric m) {
+        Map<String, AttributeValue> itemMap = new HashMap<>();
+        itemMap.put("GameName", AttributeValue.builder().s(m.gameName()).build());
+        itemMap.put("Timestamp", AttributeValue.builder().s(m.timestamp()).build());
+        itemMap.put("Methods", AttributeValue.builder().n(Long.toString(m.methods())).build());
+        itemMap.put("BasicBlocks",
+                AttributeValue.builder().n(Long.toString(m.basicBlocks())).build());
+        itemMap.put("Instructions",
+                AttributeValue.builder().n(Long.toString(m.instructions())).build());
+
+        Map<String, AttributeValue> params = new HashMap<>();
+        for (Entry<String, Integer> e : m.params().entrySet()) {
+            params.put(e.getKey(),
+                    AttributeValue.builder().n(Integer.toString(e.getValue())).build());
+        }
+
+        itemMap.put("Params", AttributeValue.builder().m(params).build());
+        return itemMap;
     }
 
     public static void uploadMetrics() {
@@ -78,43 +60,16 @@ public class DynamoUploader {
 
         while (!itemsBuffer.isEmpty() && writeRequests.size() < BUFFER_LIMIT) {
             Map<String, AttributeValue> item = itemsBuffer.pop();
-            writeRequests.add(WriteRequest.builder()
-                    .putRequest(pr -> pr.item(item))
-                    .build());
+            writeRequests.add(WriteRequest.builder().putRequest(pr -> pr.item(item)).build());
             System.out.printf("[Uploader] Added to BatchWriteRequest: " + item.toString());
         }
 
         if (!writeRequests.isEmpty()) {
             BatchWriteItemRequest batchWriteRequest = BatchWriteItemRequest.builder()
-                    .requestItems(Map.of("MetricStorageSystem", writeRequests))
-                    .build();
-
+                    .requestItems(Map.of("MetricStorageSystem", writeRequests)).build();
             client.batchWriteItem(batchWriteRequest);
             System.out.println("[Uploader] Stored metrics batch in DynamoDB table.");
-
             itemsToSend = 0;
         }
     }
-
-    // For the Buffer timeout
-    static {
-        Thread uploaderDaemon = new Thread(() -> {
-            while (true) {
-                try {
-                    Thread.sleep(5_000); // check every 5 seconds
-                    long now = System.currentTimeMillis();
-                    if (!itemsBuffer.isEmpty() && now - lastUploadTime >= BUFFER_TIMEOUT_MS) {
-                        System.out.println("[Uploader] Timeout reached. Uploading buffered metrics.");
-                        uploadMetrics();
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        });
-        uploaderDaemon.setDaemon(true);
-        uploaderDaemon.start();
-    }
-
 }
