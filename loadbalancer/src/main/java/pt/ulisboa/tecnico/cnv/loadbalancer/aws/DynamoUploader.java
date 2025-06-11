@@ -10,18 +10,17 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
 import java.util.*;
 
+//TODO: Buffer timeout
 public class DynamoUploader {
 
-    //TODO: Find region from environment?
     private static final DynamoDbClient client = DynamoDbClient.create();
     private static final ConcurrentQueue<Map<String, AttributeValue>> itemsBuffer = new ConcurrentQueue<>();
-    private static final int BUFFER_LIMIT = 5;
+    private static final int BUFFER_LIMIT = 1;
     private static int itemsToSend = 0;
 
     // Called at the end of an instance execution, with the thread-specific MetricsCollector simpleton mapping its
     // metrics to this global environment class
-    // TODO: Should this be synchronized?
-    public synchronized static void accumulateItem() {
+    public static void accumulateItem() {
         if (itemsToSend >= BUFFER_LIMIT) {
             System.out.println("Buffer limit reached. Uploading Metrics and accumulating new item.");
             uploadMetrics();
@@ -30,7 +29,6 @@ public class DynamoUploader {
         itemsToSend++;
     }
 
-    // TODO: Should this be synchronized?
     public static Map<String, AttributeValue> mapMetricsToItem(Map<String, Object> metrics) {
 
         Map<String, AttributeValue> item = new HashMap<>();
@@ -54,6 +52,8 @@ public class DynamoUploader {
                 attributeValue = AttributeValue.builder().s(metric.toString()).build();
             } else if (metric instanceof Long) {
                 attributeValue = AttributeValue.builder().n(Long.toString((Long) metric)).build();
+            } else if (metric instanceof Integer) {
+                attributeValue = AttributeValue.builder().n(Long.toString((Integer) metric)).build();
             } else {
                 // Handle other types, if any (you may want to throw an exception or log)
                 throw new IllegalArgumentException("Invalid metric type: " + metric.getClass().getName());
