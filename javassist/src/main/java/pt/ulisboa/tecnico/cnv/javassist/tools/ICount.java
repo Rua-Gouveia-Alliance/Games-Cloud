@@ -32,16 +32,9 @@ public class ICount extends CodeDumper {
     public static void incBasicBlock(int position, int length) {
         nblocks.set(nblocks.get() + 1);
         ninsts.set(ninsts.get() + length);
-
-        MetricsCollector.getInstance().addMetric(MetricsCollector.BASIC_BLOCKS, nblocks.get());
-        MetricsCollector.getInstance().addMetric(MetricsCollector.INSTRUCTIONS, ninsts.get());
     }
 
-    public static void incBehavior(String name) {
-
-        nmethods.set(nmethods.get() + 1);
-        MetricsCollector.getInstance().addMetric(MetricsCollector.METHODS_EXECUTED, nmethods.get());
-    }
+    public static void incBehavior(String name) { nmethods.set(nmethods.get() + 1); }
 
     public static void resetStatistics() {
         nblocks.set(0L);
@@ -78,6 +71,13 @@ public class ICount extends CodeDumper {
                             ICount.class.getName()),
                     true);
         }
+
+        behavior.insertAfter(String.format("%s.addMetric(%s, %d);", MetricsCollector.class.getName(),
+                MetricsCollector.METHODS_EXECUTED, nmethods.get()), true);
+        behavior.insertAfter(String.format("%s.addMetric(%s, %d);", MetricsCollector.class.getName(),
+                MetricsCollector.BASIC_BLOCKS, nblocks.get()), true);
+        behavior.insertAfter(String.format("%s.addMetric(%s, %d);", MetricsCollector.class.getName(),
+                MetricsCollector.INSTRUCTIONS, ninsts.get()), true);
     }
 
     @Override

@@ -2,9 +2,11 @@ package pt.ulisboa.tecnico.cnv.loadbalancer;
 
 import pt.ulisboa.tecnico.cnv.loadbalancer.util.ConcurrentQueue;
 import pt.ulisboa.tecnico.cnv.loadbalancer.util.HttpUtils;
+import pt.ulisboa.tecnico.cnv.loadbalancer.aws.MetricsCollector;
 
 import java.io.IOException;
 import java.io.OutputStream;
+
 
 public class WorkerHandler extends Thread {
     public String instanceId;

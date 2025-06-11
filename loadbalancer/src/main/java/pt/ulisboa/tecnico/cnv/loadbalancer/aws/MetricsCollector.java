@@ -6,20 +6,13 @@ import java.util.Map;
 
 public class MetricsCollector {
 
-    // TODO: Decide which is gonna be the partition key and which is the sort key
     // Which Metrics to keep track of
-    public static final String CLASS_NAME = "ClassName";
-    public static final String TIMESTAMP = "Timestamp";
-    public static final String DURATION = "Duration";
-    public static final String CPU_UTIL = "CPUUtilization";
-    public static final String MEMORY_USAGE = "MemoryUsage";
-    public static final String STATUS = "Status";
+    public static final String GAME_NAME = "GameName";        // Partition-Key
+    public static final String TIMESTAMP = "Timestamp";         // Sort-Key
     public static final String INPUT_PARAMS = "InputParameters";
-
     public static final String METHODS_EXECUTED = "MethodsExecuted";
     public static final String BASIC_BLOCKS = "BasicBlocksExecuted";
     public static final String INSTRUCTIONS = "InstructionsExecuted";
-
 
     private final Map<String, Object> metrics = new ConcurrentHashMap<>();
 

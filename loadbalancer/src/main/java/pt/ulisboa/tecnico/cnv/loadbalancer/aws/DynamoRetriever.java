@@ -2,57 +2,103 @@ package pt.ulisboa.tecnico.cnv.loadbalancer.aws;
 
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+
+// Pega numa request ou request.type e parametros
+// DBLoadAll(req.type, 10)
+// Distância Euclidiana dos parâmetros
+// Encontrar a mais próxima
 
 public class DynamoRetriever {
 
-    //TODO: Find region from environment?
     private static final DynamoDbClient client = DynamoDbClient.create();
 
-    public static List<Map<String, AttributeValue>> getExecutionsByClass(String className) {
-        QueryRequest request = QueryRequest.builder()
+    public static Map<String, Object> retrieveMetrics(String gameName, Integer last) {
+        Map<String, Object> metrics = new HashMap<>();
+
+        // Prepare the query request
+        QueryRequest queryRequest = QueryRequest.builder()
                 .tableName("MetricStorageSystem")
-                .keyConditionExpression("ClassName = :v_class")
-                .expressionAttributeValues(Map.of(":v_class", AttributeValue.fromS(className)))
-                .scanIndexForward(true) // true = ascending timestamp
+                .keyConditionExpression("GameName = :gameName")
+                .expressionAttributeValues(Map.of(":gameName", AttributeValue.fromS(gameName)))
                 .build();
 
-        QueryResponse response = client.query(request);
-        return response.items();
-    }
+        try {
+            // Query the DynamoDB table
+            QueryResponse queryResponse = client.query(queryRequest);
 
-    public static List<Map<String, AttributeValue>> getExecutionsByClassAndTimeRange(String className, long startTs, long endTs) {
-        Map<String, AttributeValue> expressionValues = new HashMap<>();
-        expressionValues.put(":v_class", AttributeValue.fromS(className));
-        expressionValues.put(":start", AttributeValue.fromN(Long.toString(startTs)));
-        expressionValues.put(":end", AttributeValue.fromN(Long.toString(endTs)));
+            // Process the results
+            for (Map<String, AttributeValue> item : queryResponse.items()) {
+                // Convert the DynamoDB item back into the corresponding metrics
+                String timestamp = item.get("Timestamp").s(); // Assuming Timestamp is a string
 
-        QueryRequest request = QueryRequest.builder()
-                .tableName("MetricStorageSystem")
-                .keyConditionExpression("ClassName = :v_class AND Timestamp BETWEEN :start AND :end")
-                .expressionAttributeValues(expressionValues)
-                .build();
+                // Assuming you store metrics in a key-value manner, you would process each attribute
+                for (Map.Entry<String, AttributeValue> entry : item.entrySet()) {
+                    String key = entry.getKey();
+                    AttributeValue value = entry.getValue();
 
-        QueryResponse response = client.query(request);
-        return response.items();
-    }
-
-    public static void printMetrics(List<Map<String, AttributeValue>> items) {
-        for (Map<String, AttributeValue> item : items) {
-            System.out.println("-----");
-            System.out.println("ClassName: " + item.get("ClassName").s());
-            System.out.println("Timestamp: " + item.get("Timestamp").n());
-            System.out.println("MethodsExecuted: " + item.getOrDefault("MethodsExecuted", AttributeValue.fromN("0")).n());
-            System.out.println("Status: " + item.getOrDefault("Status", AttributeValue.fromS("UNKNOWN")).s());
-            System.out.println("Duration: " + item.getOrDefault("Duration", AttributeValue.fromN("0")).n());
-            // optionally print InputParameters as raw JSON
-            if (item.containsKey("InputParameters")) {
-                System.out.println("InputParameters: " + item.get("InputParameters").m());
+                    // Add the metric to the result map
+                    if (value.s() != null) {
+                        metrics.put(key, value.s());
+                    } else if (value.n() != null) {
+                        metrics.put(key, Integer.parseInt(value.n()));
+                    } else if (value.m() != null) {
+                        metrics.put(key, value.m());  // Handling nested maps if any
+                    }
+                }
             }
+
+        } catch (DynamoDbException e) {
+            System.err.println("Error querying DynamoDB: " + e.getMessage());
+            e.printStackTrace();
         }
+
+        return metrics;
+    }
+
+    // Optionally, you could implement a method to retrieve metrics for a given Timestamp range or other filters
+    public static Map<String, Object> retrieveMetricsByTimestampRange(String gameName, String startTimestamp, String endTimestamp) {
+        Map<String, Object> metrics = new HashMap<>();
+
+        // Prepare the query request with timestamp range condition
+        QueryRequest queryRequest = QueryRequest.builder()
+                .tableName("MetricStorageSystem")
+                .keyConditionExpression("GameName = :gameName and Timestamp between :startTimestamp and :endTimestamp")
+                .expressionAttributeValues(Map.of(
+                        ":gameName", AttributeValue.fromS(gameName),
+                        ":startTimestamp", AttributeValue.fromS(startTimestamp),
+                        ":endTimestamp", AttributeValue.fromS(endTimestamp)))
+                .build();
+
+        try {
+            // Query the DynamoDB table with the timestamp range
+            QueryResponse queryResponse = client.query(queryRequest);
+
+            // Process the results
+            for (Map<String, AttributeValue> item : queryResponse.items()) {
+                // Convert the DynamoDB item back into the corresponding metrics
+                for (Map.Entry<String, AttributeValue> entry : item.entrySet()) {
+                    String key = entry.getKey();
+                    AttributeValue value = entry.getValue();
+
+                    // Add the metric to the result map
+                    if (value.s() != null) {
+                        metrics.put(key, value.s());
+                    } else if (value.n() != null) {
+                        metrics.put(key, Integer.parseInt(value.n()));
+                    } else if (value.m() != null) {
+                        metrics.put(key, value.m());  // Handling nested maps if any
+                    }
+                }
+            }
+
+        } catch (DynamoDbException e) {
+            System.err.println("Error querying DynamoDB: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return metrics;
     }
 }
-
