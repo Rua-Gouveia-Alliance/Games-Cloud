@@ -42,11 +42,29 @@ public class EC2InstanceManager {
             String instanceId = runResponse.instances().get(0).instanceId();
             System.out.println("Launched EC2 instance with ID: " + instanceId);
 
-            // TODO wait for instance init?
+            // Wait for instance to reach 'running' state
+            boolean ready = false;
+            while (!ready) {
+                DescribeInstancesRequest descReq = DescribeInstancesRequest.builder()
+                        .instanceIds(instanceId)
+                        .build();
+
+                DescribeInstancesResponse descRes = ec2.describeInstances(descReq);
+                InstanceStateName state = descRes.reservations().get(0).instances().get(0).state().name();
+
+                if (state == InstanceStateName.RUNNING) {
+                    ready = true;
+                } else {
+                    Thread.sleep(5000); // wait 5 seconds before checking again
+                }
+            }
 
             return instanceId;
         } catch (Ec2Exception e) {
             System.err.println("EC2 error: " + e.awsErrorDetails().errorMessage());
+            return "";
+        } catch (InterruptedException e) {
+            e.printStackTrace();
             return "";
         }
     }
@@ -72,7 +90,39 @@ public class EC2InstanceManager {
     }
 
     public static String getInstanceIP(String instanceId) {
-        // TODO
-        return null;
+        Region region = Region.of(REGION);
+
+        try (Ec2Client ec2 = Ec2Client.builder()
+                .region(region)
+                .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
+                .build()) {
+
+            DescribeInstancesRequest request = DescribeInstancesRequest.builder()
+                    .instanceIds(instanceId)
+                    .build();
+
+            DescribeInstancesResponse response = ec2.describeInstances(request);
+
+            List<Reservation> reservations = response.reservations();
+            if (reservations.isEmpty()) {
+                System.err.println("No reservations found for instance ID: " + instanceId);
+                return null;
+            }
+
+            List<Instance> instances = reservations.get(0).instances();
+            if (instances.isEmpty()) {
+                System.err.println("No instance details found for instance ID: " + instanceId);
+                return null;
+            }
+
+            Instance instance = instances.get(0);
+            String ip = instance.publicIpAddress(); // use privateIpAddress() if needed
+            System.out.println("Instance " + instanceId + " IP: " + ip);
+            return ip;
+
+        } catch (Ec2Exception e) {
+            System.err.println("EC2 error: " + e.awsErrorDetails().errorMessage());
+            return null;
+        }
     }
 }

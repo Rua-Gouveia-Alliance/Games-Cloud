@@ -14,7 +14,7 @@ public class Autoscaler extends Thread {
     private static final int MIN_NUM_WORKERS = 1;
     private static final int MAX_NUM_WORKERS = 10;
 
-    private final List<WorkerHandler> lbWorkers; // TODO sync
+    private final List<WorkerHandler> lbWorkers;
 
     public Autoscaler(List<WorkerHandler> workers) {
         this.lbWorkers = workers;
