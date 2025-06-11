@@ -2,11 +2,26 @@
 
 source config.sh
 
-# Create dynamoDB table
+# Create dynamoDB table with keys: ClassName and MethodName
+TABLE_NAME="MetricStorageSystem"
+
+# Create the DynamoDB table in Pay-Per-Request (on-demand) mode
 aws dynamodb create-table \
-  --table-name MetricStorageSystem \
-  --attribute-definitions AttributeName=id,AttributeType=S \
-  --key-schema AttributeName=id,KeyType=HASH \
-  --billing-mode PAY_PER_REQUEST \
-  --tags Key=Environment,Value=Dev Key=Project,Value=GamesCloud
+    --table-name $TABLE_NAME \
+    --attribute-definitions \
+        AttributeName=ClassName,AttributeType=S \
+        AttributeName=Timestamp,AttributeType=N \
+    --key-schema \
+        AttributeName=ClassName,KeyType=HASH \
+        AttributeName=Timestamp,KeyType=RANGE \
+    --billing-mode PAY_PER_REQUEST \
+    --region $AWS_DEFAULT_REGION \
+    --output json
+
+echo "Waiting for table $TABLE_NAME to be created..."
+aws dynamodb wait table-exists \
+    --table-name $TABLE_NAME \
+    --region $AWS_DEFAULT_REGION
+
+echo "Table $TABLE_NAME created successfully in $AWS_DEFAULT_REGION using pay-per-request mode."
 
