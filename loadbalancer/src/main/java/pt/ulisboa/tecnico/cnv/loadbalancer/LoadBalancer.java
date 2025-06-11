@@ -16,7 +16,7 @@ public class LoadBalancer {
     private static final int LB_PORT = 8080;
     private static final long MAX_WORKLOAD = 100000; // TODO
 
-    private final List<WorkerHandler> workers = new ArrayList<>();
+    private final List<WorkerHandler> workers = Collections.synchronizedList(new ArrayList<>());
     private final AtomicInteger currentWorkerIndex = new AtomicInteger(0);
 
     private final Autoscaler autoscaler = new Autoscaler(workers); // TODO sync
@@ -73,30 +73,30 @@ public class LoadBalancer {
     }
 
     private WorkerHandler chooseWorker(Request req) {
-        // TODO sync access to workers list
-
-        if (workers.isEmpty()) {
-            return null;
-        }
-
-        ArrayList<Long> scores = new ArrayList<>(workers.size());
-
-        long newReqWorkload = req.calculateWorkload();
-        boolean available = false;
-        for (int i = 0; i < workers.size(); i++) {
-            long workerWorkload = workers.get(i).getCurrentWorkload();
-            if (workerWorkload + newReqWorkload > MAX_WORKLOAD) {
-                scores.set(i, Long.MAX_VALUE);
-            } else {
-                scores.set(i, (long) workerWorkload);
-                available = true;
+        synchronized (workers) {
+            if (workers.isEmpty()) {
+                return null;
             }
-        }
 
-        if (!available) {
-            return null;
+            ArrayList<Long> scores = new ArrayList<>(workers.size());
+
+            long newReqWorkload = req.calculateWorkload();
+            boolean available = false;
+            for (int i = 0; i < workers.size(); i++) {
+                long workerWorkload = workers.get(i).getCurrentWorkload();
+                if (workerWorkload + newReqWorkload > MAX_WORKLOAD) {
+                    scores.add(Long.MAX_VALUE);
+                } else {
+                    scores.add((long) workerWorkload);
+                    available = true;
+                }
+            }
+
+            if (!available) {
+                return null;
+            }
+            return workers.get(scores.indexOf(Collections.min(scores)));
         }
-        return workers.get(scores.indexOf(Collections.min(scores)));
     }
 
     private void useLambda(Request req) {

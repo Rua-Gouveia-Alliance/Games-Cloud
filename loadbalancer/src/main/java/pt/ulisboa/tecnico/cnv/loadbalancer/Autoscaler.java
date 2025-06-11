@@ -7,10 +7,7 @@ import org.ojalgo.optimisation.Variable;
 import pt.ulisboa.tecnico.cnv.loadbalancer.aws.EC2InstanceManager;
 
 import java.math.BigDecimal;
-import java.util.AbstractMap;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Autoscaler extends Thread {
 
@@ -78,22 +75,38 @@ public class Autoscaler extends Thread {
     }
 
     private long getCurrentLambda() {
-        // TODO calculate lambda based on cloudwatch and current vm utilization (can retrieve this from loadbalancer)
-        return 0;
+        long lambda = 0;
+
+        List<WorkerHandler> snapshot;
+        synchronized (lbWorkers) {
+            snapshot = new ArrayList<>(lbWorkers);
+        }
+
+        for (WorkerHandler worker : snapshot) {
+            lambda += worker.getCurrentWorkload();
+        }
+
+        // TODO calculate lambda also based on cloudwatch
+
+        return lambda;
     }
 
     public void scaleOut() {
         String instanceId = EC2InstanceManager.createInstance();
-        // TODO sync
-        lbWorkers.add(new WorkerHandler(instanceId, EC2InstanceManager.getInstanceIP(instanceId)));
+        WorkerHandler newHandler = new WorkerHandler(instanceId, EC2InstanceManager.getInstanceIP(instanceId));
+        synchronized (lbWorkers) {
+            lbWorkers.add(newHandler);
+        }
     }
 
     public void scaleIn() {
-        // TODO sync lbWorkers
-        for (WorkerHandler w : lbWorkers) {
-            if (w.getCurrentRequest() == null) {
-                lbWorkers.remove(w);
-                EC2InstanceManager.terminateInstance(w.instanceId);
+        synchronized (lbWorkers) {
+            for (WorkerHandler w : new ArrayList<>(lbWorkers)) {
+                if (w.getCurrentRequest() == null) {
+                    lbWorkers.remove(w);
+                    EC2InstanceManager.terminateInstance(w.instanceId);
+                    break;
+                }
             }
         }
     }
