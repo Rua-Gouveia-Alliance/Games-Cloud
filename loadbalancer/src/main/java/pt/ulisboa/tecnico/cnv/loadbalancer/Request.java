@@ -1,11 +1,11 @@
 package pt.ulisboa.tecnico.cnv.loadbalancer;
 
+import com.sun.net.httpserver.HttpExchange;
+import pt.ulisboa.tecnico.cnv.loadbalancer.aws.DynamoRetriever;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-
-import com.sun.net.httpserver.HttpExchange;
-
-import pt.ulisboa.tecnico.cnv.loadbalancer.aws.DynamoRetriever;
 
 /* Paths of games:
  * http://${host}:${port}/gameoflife?iterations=${iterations}&mapFilename=${mapFilename}
@@ -24,7 +24,10 @@ public class Request {
     }
 
     public long calculateWorkload() {
-        Map<String, Object> recent = DynamoRetriever.retrieveRecentClosestMetric(this.getType(), this.getParamsDict(), 100);
+        Map<String, Integer> paramsDict = this.getParamsDict();
+        ArrayList<Object> recentClosest = DynamoRetriever.retrieveRecentClosestMetric(this.getType(), this.getParamsDict(), 100);
+        Map<String, Long> recent = (Map<String, Long>) recentClosest.get(0);
+        double distance = (double) recentClosest.get(1);
 
         if (recent == null) {
             System.out.println("[Request] No metric found, assuming default workload of 0");
@@ -32,15 +35,20 @@ public class Request {
         }
 
         try {
-            long methods = ((Number) recent.getOrDefault("methods", 0)).longValue();
-            long blocks = ((Number) recent.getOrDefault("basicBlocks", 0)).longValue();
-            long instructions = ((Number) recent.getOrDefault("instructions", 0)).longValue();
+            long methods = recent.getOrDefault("methods", (long) 0);
+            long blocks = recent.getOrDefault("basicBlocks", (long) 0);
+            long instructions = recent.getOrDefault("instructions", (long) 0);
 
             // TODO tune these weights based on experiments
             // "If you have logs of real executions (with actual durations), you can compare those to the metrics and compute the best weights using a linear regression to predict duration from metrics."
             double workload = 1.0 * methods + 2.0 * blocks + 1.5 * instructions;
 
-            return Math.round(workload);
+            // Distance-based adjustment
+            // Example heuristic: 1% adjustment per unit of distance
+            double adjustmentFactor = 1.0 + (distance * 0.01);
+            double adjustedWorkload = workload * adjustmentFactor;
+
+            return Math.round(adjustedWorkload);
         } catch (Exception e) {
             System.out.println("[Request] Error parsing metric values: " + e.getMessage());
             return 0;
@@ -66,8 +74,8 @@ public class Request {
         return path.substring(idx + 1);
     }
 
-    public Map<String, Number> getParamsDict() {
-        Map<String, Number> result = new HashMap<>();
+    public Map<String, Integer> getParamsDict() {
+        Map<String, Integer> result = new HashMap<>();
         String type = getType();
 
         // initialize default values
