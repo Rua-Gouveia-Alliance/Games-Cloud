@@ -4,6 +4,7 @@ import org.ojalgo.optimisation.Expression;
 import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
+import pt.ulisboa.tecnico.cnv.loadbalancer.aws.EC2InstanceManager;
 
 import java.math.BigDecimal;
 import java.util.AbstractMap;
@@ -12,6 +13,9 @@ import java.util.List;
 import java.util.Map;
 
 public class Autoscaler extends Thread {
+
+    private static final int MIN_NUM_WORKERS = 1;
+    private static final int MAX_NUM_WORKERS = 10;
 
     private final List<WorkerHandler> lbWorkers; // TODO sync
 
@@ -74,8 +78,24 @@ public class Autoscaler extends Thread {
     }
 
     private long getCurrentLambda() {
-        // TODO calculate lambda based on cloudwatch and current vm utilization (he can retrieve this from loadbalancer)
+        // TODO calculate lambda based on cloudwatch and current vm utilization (can retrieve this from loadbalancer)
         return 0;
+    }
+
+    public void scaleOut() {
+        String instanceId = EC2InstanceManager.createInstance();
+        // TODO sync
+        lbWorkers.add(new WorkerHandler(instanceId, EC2InstanceManager.getInstanceIP(instanceId)));
+    }
+
+    public void scaleIn() {
+        // TODO sync lbWorkers
+        for (WorkerHandler w : lbWorkers) {
+            if (w.getCurrentRequest() == null) {
+                lbWorkers.remove(w);
+                EC2InstanceManager.terminateInstance(w.instanceId);
+            }
+        }
     }
 
     @Override
@@ -87,10 +107,14 @@ public class Autoscaler extends Thread {
                 System.out.println(e.getKey() + ": " + e.getValue());
             }
 
-            // TODO scale-in or scale-out based on the info
+            if (config.get("VM").compareTo(BigDecimal.valueOf(workers.size())) < 0 && lbWorkers.size() > MIN_NUM_WORKERS) {
+                scaleIn();
+            } else if (config.get("VM").compareTo(BigDecimal.valueOf(workers.size())) > 0 && lbWorkers.size() < MAX_NUM_WORKERS) {
+                scaleOut();
+            }
 
             try {
-                sleep(5000);
+                Thread.sleep(5000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

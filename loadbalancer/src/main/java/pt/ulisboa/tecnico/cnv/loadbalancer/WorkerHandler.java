@@ -7,15 +7,16 @@ import java.io.IOException;
 import java.io.OutputStream;
 
 public class WorkerHandler extends Thread {
-    private final int port;
-    private final String ip = "127.0.0.1";
+    public String instanceId;
+    private final String ip;
+    private final int port = 8000;
 
     public ConcurrentQueue<Request> queue = new ConcurrentQueue<>();
     private Request currentRequest;
 
-    public WorkerHandler(int port) {
-        this.port = port;
-        this.queue = queue;
+    public WorkerHandler(String instanceId, String ip) {
+        this.instanceId = instanceId;
+        this.ip = ip;
     }
 
     @Override
@@ -69,6 +70,10 @@ public class WorkerHandler extends Thread {
         }
 
         return total;
+    }
+
+    public Request getCurrentRequest() {
+        return currentRequest;
     }
 
 }

@@ -7,7 +7,7 @@ import software.amazon.awssdk.services.ec2.model.*;
 
 import java.util.List;
 
-public class EC2LaunchWaitTerminate {
+public class EC2InstanceManager {
 
     // TODO: import from config.sh?
     private static final String REGION = "us-east-1";
@@ -18,23 +18,15 @@ public class EC2LaunchWaitTerminate {
     // Time to wait before terminating (10 minutes)
     private static final long WAIT_TIME = 1000 * 60 * 10;
 
-    public static void main(String[] args) throws InterruptedException {
+    public static String createInstance() {
+        // TODO configure instance
+
         Region region = Region.of(REGION);
 
         try (Ec2Client ec2 = Ec2Client.builder()
                 .region(region)
                 .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
                 .build()) {
-
-            // List Availability Zones
-            DescribeAvailabilityZonesResponse zonesResponse = ec2.describeAvailabilityZones();
-            System.out.println("You have access to " + zonesResponse.availabilityZones().size() + " Availability Zones.");
-
-            // List running instances
-            DescribeInstancesResponse beforeResponse = ec2.describeInstances();
-            long totalInstances = beforeResponse.reservations().stream()
-                    .mapToLong(r -> r.instances().size()).sum();
-            System.out.println("You have " + totalInstances + " EC2 instance(s) running.");
 
             // Start a new instance
             RunInstancesRequest runRequest = RunInstancesRequest.builder()
@@ -50,11 +42,23 @@ public class EC2LaunchWaitTerminate {
             String instanceId = runResponse.instances().get(0).instanceId();
             System.out.println("Launched EC2 instance with ID: " + instanceId);
 
-            // Wait
-            System.out.println("Waiting 10 minutes before terminating the instance...");
-            Thread.sleep(WAIT_TIME);
+            // TODO wait for instance init?
 
-            // Terminate instance
+            return instanceId;
+        } catch (Ec2Exception e) {
+            System.err.println("EC2 error: " + e.awsErrorDetails().errorMessage());
+            return "";
+        }
+    }
+
+    public static void terminateInstance(String instanceId) {
+        Region region = Region.of(REGION);
+
+        try (Ec2Client ec2 = Ec2Client.builder()
+                .region(region)
+                .credentialsProvider(EnvironmentVariableCredentialsProvider.create())
+                .build()) {
+
             TerminateInstancesRequest termRequest = TerminateInstancesRequest.builder()
                     .instanceIds(instanceId)
                     .build();
@@ -65,5 +69,10 @@ public class EC2LaunchWaitTerminate {
         } catch (Ec2Exception e) {
             System.err.println("EC2 error: " + e.awsErrorDetails().errorMessage());
         }
+    }
+
+    public static String getInstanceIP(String instanceId) {
+        // TODO
+        return null;
     }
 }

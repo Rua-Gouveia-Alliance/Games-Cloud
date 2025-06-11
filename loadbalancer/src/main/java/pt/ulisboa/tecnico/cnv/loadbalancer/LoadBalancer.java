@@ -13,17 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class LoadBalancer {
 
-    // 1. LOAD-BALANCER WILL START A SERVER SOCKET AND LISTEN FOR REQUESTS
-    // 2. WHEN IT ACCEPTS A REQUEST, CHOOSES ONE THREAD FROM A CACHED POOL TO DEAL WITH IT
-    // 3. LB PARSES THE INCOMING REQUEST AND CHECKS VALIDITY
-    // 4. IT THEN CHOOSES THE BEST WORKER FOR THE PARSED REQUEST
-    // 5. IT THEN DELEGATES THIS PARSED REQUEST TO THE CHOSEN WORKER
-    // 6. AFTER SENDING THE REQUEST, IT WAITS FOR A RESPONSE
-    // 7. WHEN IT RECEIVES THE RESPONSE, SENDS IT BACK TO THE CLIENT
-
     private static final int LB_PORT = 8080;
-    private static final String WORKER_IP = "127.0.0.1"; // For local testing
-    private static final int WORKER_BASE_PORT = 8000; // For local testing
     private static final long MAX_WORKLOAD = 100000; // TODO
 
     private final List<WorkerHandler> workers = new ArrayList<>();
@@ -36,12 +26,11 @@ public class LoadBalancer {
     }
 
     private void start() throws IOException {
-        // Start initial worker
-        workers.add(new WorkerHandler(WORKER_BASE_PORT));
-        workers.get(0).start();
-
         // Start autoscaler
         autoscaler.start();
+
+        // Start initial worker
+        autoscaler.scaleOut();
 
         // Start load balancer server
         HttpUtils.createServer(LB_PORT, new LoadBalancerHandler());
