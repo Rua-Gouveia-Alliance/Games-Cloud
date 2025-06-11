@@ -16,9 +16,11 @@ public class Autoscaler extends Thread {
     private static final int MAX_NUM_WORKERS = 10;
 
     private final List<WorkerHandler> lbWorkers;
+    private final LoadBalancer loadBalancer;
 
-    public Autoscaler(List<WorkerHandler> workers) {
-        this.lbWorkers = workers;
+    public Autoscaler(LoadBalancer loadBalancer) {
+        this.loadBalancer = loadBalancer;
+        this.lbWorkers = loadBalancer.workers;
     }
 
     static private class WorkerInfo {
@@ -123,7 +125,7 @@ public class Autoscaler extends Thread {
 
     public void scaleOut() {
         String instanceId = EC2InstanceManager.createInstance();
-        WorkerHandler newHandler = new WorkerHandler(instanceId, EC2InstanceManager.getInstanceIP(instanceId));
+        WorkerHandler newHandler = new WorkerHandler(instanceId, EC2InstanceManager.getInstanceIP(instanceId), this.loadBalancer);
         synchronized (lbWorkers) {
             lbWorkers.add(newHandler);
         }

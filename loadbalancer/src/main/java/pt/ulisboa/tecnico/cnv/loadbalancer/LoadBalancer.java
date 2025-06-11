@@ -16,10 +16,10 @@ public class LoadBalancer {
     private static final int LB_PORT = 8080;
     public static final long MAX_WORKLOAD = Long.MAX_VALUE; // TODO
 
-    private final List<WorkerHandler> workers = Collections.synchronizedList(new ArrayList<>());
+    public final List<WorkerHandler> workers = Collections.synchronizedList(new ArrayList<>());
     private final AtomicInteger currentWorkerIndex = new AtomicInteger(0);
 
-    private final Autoscaler autoscaler = new Autoscaler(workers);
+    private final Autoscaler autoscaler = new Autoscaler(this);
 
     public static void main(String[] args) throws IOException {
         new LoadBalancer().start();
@@ -102,4 +102,9 @@ public class LoadBalancer {
     private void useLambda(Request req) {
         new LambdaWorker(req).start();
     }
+
+    public void reassignRequest(Request req) {
+        delegateToWorker(req);
+    }
+
 }

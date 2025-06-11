@@ -13,10 +13,12 @@ public class WorkerHandler extends Thread {
 
     public ConcurrentQueue<Request> queue = new ConcurrentQueue<>();
     private Request currentRequest;
+    private LoadBalancer loadBalancer;
 
-    public WorkerHandler(String instanceId, String ip) {
+    public WorkerHandler(String instanceId, String ip, LoadBalancer loadBalancer) {
         this.instanceId = instanceId;
         this.ip = ip;
+        this.loadBalancer = loadBalancer;
     }
 
     @Override
@@ -30,7 +32,12 @@ public class WorkerHandler extends Thread {
                 }
 
                 currentRequest = queue.pop();
-                processRequest(currentRequest);
+                boolean success = processRequest(currentRequest);
+                if (!success) {
+                    handleCrash();
+                    return;
+                }
+
                 sendResponse(currentRequest);
                 currentRequest = null;
             }
@@ -39,11 +46,34 @@ public class WorkerHandler extends Thread {
         }
     }
 
-    public void processRequest(Request req) {
+    private void handleCrash() {
+        System.err.println("[WORKER FAILURE] Instance " + instanceId + " failed. Reassigning tasks.");
+
+        synchronized (loadBalancer.workers) {
+            loadBalancer.workers.remove(this);
+        }
+
+        // reassign current request
+        if (currentRequest != null) {
+            loadBalancer.reassignRequest(currentRequest);
+        }
+
+        // reassign all queued requests
+        for (Request r : queue.getContainer()) {
+            loadBalancer.reassignRequest(r);
+        }
+
+        queue.clear();
+    }
+
+    private boolean processRequest(Request req) {
         try {
             req.result = HttpUtils.sendGet(ip, port, req.path);
+            return true;
         } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
+            // VM crashed
+            req.result = null;
+            return false;
         }
     }
 
