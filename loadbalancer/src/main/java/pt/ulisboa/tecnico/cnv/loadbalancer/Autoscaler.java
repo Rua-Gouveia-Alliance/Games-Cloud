@@ -125,7 +125,7 @@ public class Autoscaler extends Thread {
 
     public void scaleOut() {
         String instanceId = EC2InstanceManager.createInstance();
-        if (instanceId == "")
+        if (instanceId.isEmpty())
             return;
 
         WorkerHandler newHandler = new WorkerHandler(instanceId, EC2InstanceManager.getInstanceIP(instanceId), this.loadBalancer);
