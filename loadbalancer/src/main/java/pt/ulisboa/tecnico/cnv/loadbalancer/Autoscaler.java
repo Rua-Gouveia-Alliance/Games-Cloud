@@ -125,6 +125,9 @@ public class Autoscaler extends Thread {
 
     public void scaleOut() {
         String instanceId = EC2InstanceManager.createInstance();
+        if (instanceId == "")
+            return;
+
         WorkerHandler newHandler = new WorkerHandler(instanceId, EC2InstanceManager.getInstanceIP(instanceId), this.loadBalancer);
         synchronized (lbWorkers) {
             lbWorkers.add(newHandler);
@@ -161,7 +164,7 @@ public class Autoscaler extends Thread {
             try {
                 Thread.sleep(5000);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                System.out.println("[AutoScaler] Terminated unexpectedly: " + e.toString());
             }
         }
     }

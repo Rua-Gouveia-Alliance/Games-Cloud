@@ -44,7 +44,7 @@ public class WorkerHandler extends Thread {
                 currentRequest = null;
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            System.out.println("[WorkerHandler] Terminated unexpectedly: " + e.toString());
         }
     }
 
@@ -87,7 +87,7 @@ public class WorkerHandler extends Thread {
                 os.write(req.result.getBytes());
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("[WorkerHandler] Failed sending response to client: " + e.toString());
         }
     }
 

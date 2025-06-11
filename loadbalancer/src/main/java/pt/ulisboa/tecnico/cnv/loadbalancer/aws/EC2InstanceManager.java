@@ -57,7 +57,7 @@ public class EC2InstanceManager {
             System.err.println("EC2 error: " + e.awsErrorDetails().errorMessage());
             return "";
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            System.out.println("EC2 error (terminated unexpectedly): " + e.toString());
             return "";
         }
     }
