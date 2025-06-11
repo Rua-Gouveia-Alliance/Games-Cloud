@@ -2,51 +2,46 @@
 
 source config.sh
 
-# Step 1: update and delete Auto Scaling group.
-aws autoscaling update-auto-scaling-group \
-	--auto-scaling-group-name GaC-ASG \
-  	--min-size 0 \
-  	--max-size 0 \
-  	--desired-capacity 0
-
-# Optional: wait for instance termination before deletion
-echo "Waiting 60 seconds for instance termination..."
-sleep 60
-
-aws autoscaling delete-auto-scaling-group \
-	--auto-scaling-group-name GaC-ASG \
-	--force-delete
-
-# Step 2: delete Launch Template.
-aws ec2 delete-launch-template \
-  	--launch-template-name GaC-launchtemp
-
-# Step 3: delete load balancer.
-aws elb delete-load-balancer \
-	--load-balancer-name GaC-LB
-
-# Step 4: delete cloudwatch alarms
-aws cloudwatch delete-alarms \
-	--alarm-names GaC-CPU-High GaC-CPU-Low
-
-# Step 5: delete image and snapshots
-IMAGE_ID=$(cat image.id)
-
-# Get and delete associated snapshots
-SNAPSHOT_IDS=$(aws ec2 describe-images \
-    --image-ids "$IMAGE_ID" \
-    --query "Images[].BlockDeviceMappings[].Ebs.SnapshotId" \
+echo "Terminating all EC2 instances..."
+INSTANCE_IDS=$(aws ec2 describe-instances \
+    --query "Reservations[].Instances[].InstanceId" \
     --output text)
 
-# Deregister the AMI
-aws ec2 deregister-image --image-id "$IMAGE_ID"
-sleep 1
+if [[ -z "$INSTANCE_IDS" ]]; then
+    echo "No EC2 instances found."
+else
+    aws ec2 terminate-instances --instance-ids $INSTANCE_IDS
+    echo "Waiting for instance termination (60s)..."
+    sleep 60
+fi
 
-for SNAPSHOT_ID in $SNAPSHOT_IDS; do
-    aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
-done
+if [ -f image-webserver.id ]; then
+    IMAGE_ID=$(cat image-webserver.id)
+    echo "Deregistering AMI: $IMAGE_ID"
 
-# Step 6: delete files
-rm image.id instance.dns instance.id
+    SNAPSHOT_IDS=$(aws ec2 describe-images \
+        --image-ids "$IMAGE_ID" \
+        --query "Images[].BlockDeviceMappings[].Ebs.SnapshotId" \
+        --output text)
 
-echo "Done."
+    aws ec2 deregister-image --image-id "$IMAGE_ID"
+
+    echo "Deleting associated snapshots..."
+    for SNAPSHOT_ID in $SNAPSHOT_IDS; do
+        aws ec2 delete-snapshot --snapshot-id "$SNAPSHOT_ID"
+    done
+
+    rm -f image-webserver.id
+else
+    echo "image-webserver.id not found — skipping AMI cleanup."
+fi
+
+echo "Deleting Lambda functions..."
+aws lambda delete-function --function-name capturetheflag || echo "capturetheflag not found"
+aws lambda delete-function --function-name fifteenpuzzle || echo "fifteenpuzzle not found"
+aws lambda delete-function --function-name gameoflife || echo "gameoflife not found"
+
+echo "Deleting DynamoDB table 'metrics'..."
+aws dynamodb delete-table --table-name metrics || echo "metrics table not found"
+
+echo "Termination complete. All AWS resources cleaned up."

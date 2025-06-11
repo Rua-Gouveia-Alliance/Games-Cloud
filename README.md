@@ -1,6 +1,6 @@
-## Games@Cloud
+## Games\@Cloud
 
-This project contains three sub-projects:
+This project contains four sub-projects:
 
 1. `capturetheflag` - the Capture the Flag workload
 2. `fifteenpuzzle` - the 15-Puzzle Solver workload
@@ -11,104 +11,105 @@ Refer to the `README.md` files of the sub-projects to get more details about eac
 
 ### How to build everything
 
-1. Make sure your `JAVA_HOME` environment variable is set to Java 11+ distribution
-2. Run `mvn clean package`
+1. Make sure your `JAVA_HOME` environment variable is set to a Java 11+ distribution
+2. Run `mvn clean package` from the root directory
 
-### Running the instrumented webserver
+### Running the instrumented webserver (for local testing only)
 
-From the project's root:
 ```
 java -cp webserver/target/webserver-1.0.0-SNAPSHOT-jar-with-dependencies.jar -javaagent:javassist/target/javassist-1.0.0-SNAPSHOT-jar-with-dependencies.jar=ICount:pt.ulisboa.tecnico.cnv.capturetheflag,pt.ulisboa.tecnico.cnv.fifteenpuzzle,pt.ulisboa.tecnico.cnv.gameoflife:output pt.ulisboa.tecnico.cnv.webserver.WebServer
 ```
 
 ### System Architecture and AWS Configuration
 
-The architecture follows a **Load Balanced Auto-Scaling Group** model to host and scale the web server that runs the workloads. Here's an overview:
+The architecture now uses a **custom Load Balancer with Auto Scaling and Lambda support** to handle and scale requests dynamically. Here's an updated overview:
 
 #### Components
 
 * **Amazon EC2 Instances**
-  
-  Used to run the workloads (`capturetheflag`, `fifteenpuzzle`, `gameoflife`) exposed by the instrumented `webserver`.
 
-* **Amazon Machine Image (AMI)**
-  
-  Created from a manually configured EC2 instance, containing the web server and startup scripts.
+  * Run the instrumented `webserver` hosting the game workloads.
 
-* **Elastic Load Balancer (ELB)**
-  
-  Distributes incoming HTTP requests across multiple EC2 instances running in a single Availability Zone.
+* **Amazon Lambda Functions**
 
-* **Auto Scaling Group (ASG)**
-  
-  Ensures availability and elasticity of the application by scaling the number of EC2 instances based on CPU usage.
+  * Each game is deployed as a separate Lambda function for cost-effective, burstable request handling.
+  * **IAM Role Required**: Ensure your Lambda functions use the following execution role:
 
-* **CloudWatch Alarms**
-  
-  Monitor EC2 CPU utilization and trigger scaling policies accordingly.
+    ```
+    arn:aws:iam::$AWS_ACCOUNT_ID:role/gac-lambda-role
+    ```
 
+* **Amazon DynamoDB**
 
-#### Load Balancer Configuration
+  * Stores instrumentation metrics extracted by the webservers.
 
-* **Type**: Classic Load Balancer (ELB)
-* **Name**: `GaC-LB`
-* **Listener**:
+* **Amazon CloudWatch**
 
-  * Protocol: HTTP
-  * LoadBalancerPort: 80
-  * InstanceProtocol: HTTP
-  * InstancePort: 8000
-* **Availability Zone**: `eu-west-3a`
-* **Health Check**:
+  * Provides CPU metrics for EC2-based autoscaling decisions.
 
-  * Target: `HTTP:8000/test`
-  * Interval: 30 seconds
-  * Timeout: 5 seconds
-  * Healthy Threshold: 10
-  * Unhealthy Threshold: 2
+* **Custom Java Load Balancer**
 
+  * Routes requests to EC2 instances or Lambda based on real-time metrics and worker availability.
+  * Uses a shared-memory model to interact with the Autoscaler.
 
-#### Auto Scaling Group Configuration
+* **Java-based AutoScaler**
 
-* **Name**: `GaC-ASG`
-* **Launch Template**: `GaC-launchtemp`
-* **Instance Type**: `t2.micro`
-* **AMI ID**: dynamically generated and stored in `image.id`
-* **Key Name**: defined in `config.sh`
-* **Security Group**: defined in `config.sh`
-* **Monitoring**: Enabled
-* **Min Size**: 1
-* **Max Size**: 3
-* **Desired Capacity**: 1
-* **Availability Zone**: `eu-west-3a`
-* **Health Check Type**: ELB
-* **Health Check Grace Period**: 60 seconds
+  * Monitors total system load (using metrics and queues) to dynamically scale EC2 workers.
+  * Avoids waste and bootstrapping penalties.
 
+#### Load Balancer Details
 
-#### Auto Scaling Policies
+* **Port**: 8080 (external), 8000 (internal worker HTTP server)
+* **Dispatch Strategy**:
 
-* **Scale Out (Add Instance)**:
+  * Forwards requests to the least-loaded EC2 instance if available.
+  * Falls back to Lambda execution if all instances are overloaded or booting.
+  * Detects failed VMs and reassigns queued requests.
 
-  * Policy Type: Step Scaling
-  * Trigger: CPU Utilization > 50%
-  * Adjustment: +1 instance
-  * Cooldown: 60 seconds
+#### AutoScaler Policies
 
-* **Scale In (Remove Instance)**:
-
-  * Policy Type: Step Scaling
-  * Trigger: CPU Utilization < 20%
-  * Adjustment: -1 instance
-  * Cooldown: 60 seconds
+* Monitors a custom `lambda` metric derived from current queue lengths, in-flight workloads, and CloudWatch CPU utilization.
+* **Scale Out**: Launches a new instance when estimated lambda exceeds a dynamic threshold.
+* **Scale In**: Terminates underutilized instances after a cool-down period.
 
 ### Deploying on AWS
 
-1. Ensure the parameters in `aws-scripts/config.sh` are correct, and that your AWS access keys are stored in `aws-scripts/rootkey.csv`.
-2. Make sure the SSH keypair file `gac-aws-key.pem` is present in the `aws-scripts` directory.
+1. Ensure AWS credentials are configured in `aws-scripts/config.sh`, including:
 
-From the `aws-scripts` directory:
+   * `AWS_ACCESS_KEY_ID`
+   * `AWS_SECRET_ACCESS_KEY`
+   * `AWS_ACCOUNT_ID`
+   * `AWS_DEFAULT_REGION`
+   * `AWS_KEYPAIR_NAME`
+   * `AWS_SECURITY_GROUP`
+   * `AWS_EC2_SSH_KEYPAR_PATH`
 
-3. Create the AMI from the local version by running `./create-img.sh`
-4. Deploy the Load Balancer, Auto Scaling Group, and configure CloudWatch alarms by running `./launch-deployment.sh`
-5. To stop the server and terminate all AWS resources, run `./terminate-deployment.sh`
+2. Create the instrumented AMI by running:
 
+   ```bash
+   ./aws-scripts/create-image.sh
+   ```
+
+3. Once the image is created, update the `AMI_ID` value in the code (`EC2InstanceManager.java`), then:
+
+   ```bash
+   read -p "Once you've done that and recompiled, press [Enter] to continue..."
+   ```
+
+4. Deploy all infrastructure:
+
+   ```bash
+   ./aws-scripts/launch-deployment.sh
+   ```
+
+5. This script will:
+
+   * Create DynamoDB table
+   * Deploy 3 Lambda functions: `capturetheflag`, `fifteenpuzzle`, and `gameoflife`
+   * Deploy and start the custom Java-based load balancer
+
+6. To terminate all infrastructure:
+
+   ```bash
+   ./aws-scripts/terminate-deployment.sh
+   ```
