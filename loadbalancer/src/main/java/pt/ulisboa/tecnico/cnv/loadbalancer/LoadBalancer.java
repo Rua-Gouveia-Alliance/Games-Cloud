@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class LoadBalancer {
 
     private static final int LB_PORT = 8080;
-    private static final long MAX_WORKLOAD = Long.MAX_VALUE; // TODO
+    public static final long MAX_WORKLOAD = Long.MAX_VALUE; // TODO
 
     private final List<WorkerHandler> workers = Collections.synchronizedList(new ArrayList<>());
     private final AtomicInteger currentWorkerIndex = new AtomicInteger(0);

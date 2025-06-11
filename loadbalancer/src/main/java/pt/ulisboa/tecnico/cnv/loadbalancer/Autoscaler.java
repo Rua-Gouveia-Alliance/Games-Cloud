@@ -76,33 +76,47 @@ public class Autoscaler extends Thread {
     }
 
     private long getCurrentLambda() {
-        // TODO review this formula (normalize)
+        // Weights (adjust these based on tuning and experiments)
+        final double workloadWeight = 0.7;
+        final double cpuWeight = 0.3;
 
-        long lambda = 0;
+        // Normalization constants
+        final double maxCpuPercent = 100.0;
+
+        long totalWorkload = 0;
+        double totalCpu = 0.0;
+        int count = 0;
 
         List<WorkerHandler> snapshot;
         synchronized (lbWorkers) {
             snapshot = new ArrayList<>(lbWorkers);
         }
 
-        // Current workers workload
         for (WorkerHandler worker : snapshot) {
-            lambda += worker.getCurrentWorkload();
+            totalWorkload += worker.getCurrentWorkload();
         }
 
-        // Cloudwatch metrics
-        double totalCpu = 0.0;
-        int count = 0;
-        for (WorkerHandler w : snapshot) {
-            double cpu = EC2Metrics.getAverageCpuUtilization(w.instanceId);
+        for (WorkerHandler worker : snapshot) {
+            double cpu = EC2Metrics.getAverageCpuUtilization(worker.instanceId);
             if (cpu >= 0) {
                 totalCpu += cpu;
                 count++;
             }
         }
 
-        double avgCpu = count > 0 ? totalCpu / count : 0;
-        lambda += (long) avgCpu * 100;
+        double avgCpu = count > 0 ? totalCpu / count : 0.0;
+
+        // Normalize both to [0, 1] scale
+        double normalizedWorkload = (double) totalWorkload / (snapshot.size() * LoadBalancer.MAX_WORKLOAD);
+        double normalizedCpu = avgCpu / maxCpuPercent;
+
+        // Compute weighted lambda in [0, 1] range
+        double normalizedLambda = workloadWeight * normalizedWorkload + cpuWeight * normalizedCpu;
+
+        long lambda = (long) normalizedLambda * MAX_NUM_WORKERS;
+
+        System.out.printf("λ = workload=%.2f, cpu=%.2f → normalized λ=%.2f → final λ=%d%n",
+                normalizedWorkload, normalizedCpu, normalizedLambda, lambda);
 
         return lambda;
     }
