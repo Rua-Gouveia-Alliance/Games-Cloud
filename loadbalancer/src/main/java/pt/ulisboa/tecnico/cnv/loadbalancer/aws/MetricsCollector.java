@@ -1,28 +1,35 @@
 package pt.ulisboa.tecnico.cnv.loadbalancer.aws;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 
 public class MetricsCollector {
 
-    private final List<Metric> metrics = Collections.synchronizedList(new ArrayList<>());
+    // Which Metrics to keep track of
+    public static final String GAME_NAME = "GameName";        // Partition-Key
+    public static final String TIMESTAMP = "Timestamp";         // Sort-Key
+    public static final String INPUT_PARAMS = "InputParameters";
+    public static final String METHODS_EXECUTED = "MethodsExecuted";
+    public static final String BASIC_BLOCKS = "BasicBlocksExecuted";
+    public static final String INSTRUCTIONS = "InstructionsExecuted";
 
-    // Isto e pa que??
-    private static final ThreadLocal<MetricsCollector> instance =
-            ThreadLocal.withInitial(MetricsCollector::new);
+    private final Map<String, Object> metrics = new ConcurrentHashMap<>();
+
+    private static final ThreadLocal<MetricsCollector> instance = ThreadLocal.withInitial(MetricsCollector::new);
+
+    private MetricsCollector() {}
 
     public static MetricsCollector getInstance() {
         return instance.get();
     }
 
-    public void addMetric(Metric metric) {
-        metrics.add(metric);
+    public void addMetric(String key, Object value) {
+        metrics.put(key, value);
     }
 
-    public List<Metric> getAllMetrics() {
-        return new ArrayList<>(metrics);
+    public Map<String, Object> getAllMetrics() {
+        return new HashMap<>(metrics);
     }
 
     public void clearMetrics() {
@@ -33,16 +40,12 @@ public class MetricsCollector {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("MetricsCollector { ");
-        synchronized (metrics) {
-            Iterator<Metric> i = metrics.iterator();
-            while (i.hasNext()) {
-                sb.append(i.next());
-            }
-            if (!metrics.isEmpty()) {
-                sb.setLength(sb.length() - 2); // Remove the trailing ", "
-            }
+        metrics.forEach((key, value) -> sb.append(key).append("=").append(value).append(", "));
+        if (!metrics.isEmpty()) {
+            sb.setLength(sb.length() - 2);  // Remove the trailing ", "
         }
         sb.append(" }");
         return sb.toString();
     }
 }
+

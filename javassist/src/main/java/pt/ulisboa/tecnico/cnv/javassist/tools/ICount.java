@@ -2,12 +2,10 @@ package pt.ulisboa.tecnico.cnv.javassist.tools;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.LocalDateTime;
 import java.util.List;
 
 import javassist.CannotCompileException;
 import javassist.CtBehavior;
-import pt.ulisboa.tecnico.cnv.loadbalancer.aws.Metric;
 import pt.ulisboa.tecnico.cnv.loadbalancer.aws.MetricsCollector;
 
 public class ICount extends CodeDumper {
@@ -36,9 +34,7 @@ public class ICount extends CodeDumper {
         ninsts.set(ninsts.get() + length);
     }
 
-    public static void incBehavior(String name) {
-        nmethods.set(nmethods.get() + 1);
-    }
+    public static void incBehavior(String name) { nmethods.set(nmethods.get() + 1); }
 
     public static void resetStatistics() {
         nblocks.set(0L);
@@ -74,14 +70,53 @@ public class ICount extends CodeDumper {
                     String.format("%s.printStatistics(this.getClass().getSimpleName());",
                             ICount.class.getName()),
                     true);
-
-            behavior.insertAfter(String.format(
-                    "%s.addMetric(new %s(this.getClass().getSimpleName(), %s.now(), %s, %d, %d, %d));",
-                    MetricsCollector.class.getName(), Metric.class.getName(),
-                    LocalDateTime.class.getName(), "params", nmethods.get(), nblocks.get(),
-                    ninsts.get()), true);
         }
+
+        insertMetric(behavior, MetricsCollector.METHODS_EXECUTED, nmethods.get());
+        insertMetric(behavior, MetricsCollector.BASIC_BLOCKS, nblocks.get());
+        insertMetric(behavior, MetricsCollector.INSTRUCTIONS, ninsts.get());
+        insertMetric(behavior, MetricsCollector.METHODS_EXECUTED, nmethods.get());
+        insertMetric(behavior, MetricsCollector.GAME_NAME, this.getClass().getSimpleName());
+        insertMetric(behavior, MetricsCollector.TIMESTAMP, System.currentTimeMillis());
+
+        behavior.insertAfter(
+                "{ " +
+                        "java.util.Map inputParams = new java.util.HashMap();" +
+                        "for (int i = 0; i < $args.length; i++) { " +
+                        "if ($args[i] instanceof Integer) { " +
+                        "inputParams.put(\"arg\" + i, $args[i]);" +
+                        "} " +
+                        "} " +
+                        MetricsCollector.class.getName() + ".getInstance().addMetric(\"" +
+                        MetricsCollector.INPUT_PARAMS + "\", inputParams);" +
+                        " }",
+                true
+        );
     }
+
+    private void insertMetric(CtBehavior behavior, String key, Object value) throws CannotCompileException {
+        String insertCode;
+
+        if (value instanceof Long) {
+            insertCode = String.format(
+                    "%s.getInstance().addMetric(\"%s\", Long.valueOf(%dL));",
+                    MetricsCollector.class.getName(),
+                    key,
+                    (Long) value
+            );
+        } else if (value instanceof String) {
+            insertCode = String.format(
+                    "%s.getInstance().addMetric(\"%s\", \"%s\");",
+                    MetricsCollector.class.getName(),
+                    key,
+                    value
+            );
+        } else {
+            throw new IllegalArgumentException("Unsupported metric type: " + value.getClass().getName());
+        }
+        behavior.insertAfter(insertCode, true);
+    }
+
 
     @Override
     protected void transform(BasicBlock block) throws CannotCompileException {
