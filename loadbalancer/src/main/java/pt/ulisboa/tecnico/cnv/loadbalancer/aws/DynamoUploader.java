@@ -12,84 +12,59 @@ import java.util.*;
 
 public class DynamoUploader {
 
-    //TODO: Find region from environment?
+    // TODO: Find region from environment?
     private static final DynamoDbClient client = DynamoDbClient.create();
-    private static final ConcurrentQueue<Map<String, AttributeValue>> itemsBuffer = new ConcurrentQueue<>();
+    private static final ConcurrentQueue<AttributeValue> itemsBuffer = new ConcurrentQueue<>();
     private static final int BUFFER_LIMIT = 5;
     private static int itemsToSend = 0;
 
-    // Called at the end of an instance execution, with the thread-specific MetricsCollector simpleton mapping its
+    // Called at the end of an instance execution, with the thread-specific MetricsCollector
+    // simpleton mapping its
     // metrics to this global environment class
     // TODO: Should this be synchronized?
-    public synchronized static void accumulateItem() {
+    public synchronized static void accumulateItems() {
         if (itemsToSend >= BUFFER_LIMIT) {
-            System.out.println("Buffer limit reached. Uploading Metrics and accumulating new item.");
+            System.out
+                    .println("Buffer limit reached. Uploading Metrics and accumulating new item.");
             uploadMetrics();
         }
-        itemsBuffer.push(mapMetricsToItem());
-        itemsToSend++;
-    }
 
-    // TODO: Should this be synchronized?
-    public static Map<String, AttributeValue> mapMetricsToItem(Map<String, Object> metrics) {
-
-        Map<String, AttributeValue> item = new HashMap<>();
-        Set<Map<String, Object>> visited = new HashSet<>();
-
-        for (Map.Entry<String, Object> entry : metrics.entrySet()) {
-            String key = entry.getKey();
-            Object metric = entry.getValue();
-            AttributeValue attributeValue = null;
-
-            // Check if the metric is a nested Map
-            if (metric instanceof Map) {
-                if (visited.contains(metric)) {
-                    throw new IllegalStateException("Circular reference detected for key: " + key);
-                }
-                visited.add((Map<String, Object>) metric);
-                attributeValue = AttributeValue.builder()
-                        .m(mapMetricsToItem((Map<String, Object>) metric))
-                        .build();
-            } else if (metric instanceof String) {
-                attributeValue = AttributeValue.builder().s(metric.toString()).build();
-            } else if (metric instanceof Long) {
-                attributeValue = AttributeValue.builder().n(Long.toString((Long) metric)).build();
-            } else {
-                // Handle other types, if any (you may want to throw an exception or log)
-                throw new IllegalArgumentException("Invalid metric type: " + metric.getClass().getName());
-            }
-            if (attributeValue != null) {
-                item.put(key, attributeValue);
-            }
-        };
-        System.out.printf("[Uploader] Sent to dynamo buffer: " + MetricsCollector.getInstance());
+        List<Metric> metrics = MetricsCollector.getInstance().getAllMetrics();
         MetricsCollector.getInstance().clearMetrics();
-        return item;
+        for (Metric m : metrics) {
+            itemsBuffer.push(metricToValue(m));
+            itemsToSend++;
+        }
     }
 
-    public static Map<String, AttributeValue> mapMetricsToItem() {
-        return mapMetricsToItem(MetricsCollector.getInstance().getAllMetrics());
+    private static AttributeValue metricToValue(Metric m) {
+        Map<String, AttributeValue> itemMap = new HashMap<>();
+        itemMap.put("gameName", AttributeValue.builder().s(m.gameName()).build());
+        itemMap.put("timestamp", AttributeValue.builder().s(m.timestamp()).build());
+        itemMap.put("params", AttributeValue.builder().s(m.params()).build());
+        itemMap.put("methods", AttributeValue.builder().n(Long.toString(m.methods())).build());
+        itemMap.put("basicBlocks",
+                AttributeValue.builder().n(Long.toString(m.basicBlocks())).build());
+        itemMap.put("instructions",
+                AttributeValue.builder().n(Long.toString(m.instructions())).build());
+        return AttributeValue.builder().m(itemMap).build();
     }
 
     public static void uploadMetrics() {
         List<WriteRequest> writeRequests = new ArrayList<>();
 
         while (!itemsBuffer.isEmpty() && writeRequests.size() < BUFFER_LIMIT) {
-            Map<String, AttributeValue> item = itemsBuffer.pop();
-            writeRequests.add(WriteRequest.builder()
-                    .putRequest(pr -> pr.item(item))
-                    .build());
+            AttributeValue item = itemsBuffer.pop();
+            // TODO
+            // writeRequests.add(WriteRequest.builder().putRequest(pr -> pr.item(item)).build());
             System.out.printf("[Uploader] Added to BatchWriteRequest: " + item.toString());
         }
 
         if (!writeRequests.isEmpty()) {
             BatchWriteItemRequest batchWriteRequest = BatchWriteItemRequest.builder()
-                    .requestItems(Map.of("MetricStorageSystem", writeRequests))
-                    .build();
-
+                    .requestItems(Map.of("MetricStorageSystem", writeRequests)).build();
             client.batchWriteItem(batchWriteRequest);
             System.out.println("[Uploader] Stored metrics batch in DynamoDB table.");
-
             itemsToSend = 0;
         }
     }

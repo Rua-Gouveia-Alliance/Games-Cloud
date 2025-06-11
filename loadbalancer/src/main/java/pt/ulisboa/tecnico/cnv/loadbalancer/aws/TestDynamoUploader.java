@@ -17,16 +17,18 @@ public class TestDynamoUploader {
         inputParams.put("x", "10");
         inputParams.put("y", "43");
 
-        MetricsCollector.getInstance().addMetric("GameName", gameName);
-        MetricsCollector.getInstance().addMetric("Timestamp", timestamp);
-        MetricsCollector.getInstance().addMetric("ExecutionDuration", executionDuration);
-        MetricsCollector.getInstance().addMetric("InputParams", inputParams);
+        // TODO
+        // MetricsCollector.getInstance().addMetric("GameName", gameName);
+        // MetricsCollector.getInstance().addMetric("Timestamp", timestamp);
+        // MetricsCollector.getInstance().addMetric("ExecutionDuration", executionDuration);
+        // MetricsCollector.getInstance().addMetric("InputParams", inputParams);
 
         System.out.println("DEBUG1");
         System.out.println(MetricsCollector.getInstance());
 
         try {
-            DynamoUploader.accumulateItem();
+            // TODO
+            // DynamoUploader.accumulateItem();
 
             System.out.println("Dummy values uploaded successfully!");
 
