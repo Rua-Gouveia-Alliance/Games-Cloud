@@ -5,6 +5,7 @@ import org.ojalgo.optimisation.ExpressionsBasedModel;
 import org.ojalgo.optimisation.Optimisation;
 import org.ojalgo.optimisation.Variable;
 import pt.ulisboa.tecnico.cnv.loadbalancer.aws.EC2InstanceManager;
+import pt.ulisboa.tecnico.cnv.loadbalancer.aws.EC2Metrics;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -75,6 +76,8 @@ public class Autoscaler extends Thread {
     }
 
     private long getCurrentLambda() {
+        // TODO review this formula
+
         long lambda = 0;
 
         List<WorkerHandler> snapshot;
@@ -82,11 +85,24 @@ public class Autoscaler extends Thread {
             snapshot = new ArrayList<>(lbWorkers);
         }
 
+        // Current workers workload
         for (WorkerHandler worker : snapshot) {
             lambda += worker.getCurrentWorkload();
         }
 
-        // TODO calculate lambda also based on cloudwatch
+        // Cloudwatch metrics
+        double totalCpu = 0.0;
+        int count = 0;
+        for (WorkerHandler w : snapshot) {
+            double cpu = EC2Metrics.getAverageCpuUtilization(w.instanceId);
+            if (cpu >= 0) {
+                totalCpu += cpu;
+                count++;
+            }
+        }
+
+        double avgCpu = count > 0 ? totalCpu / count : 0;
+        lambda += (long) avgCpu * 100;
 
         return lambda;
     }
