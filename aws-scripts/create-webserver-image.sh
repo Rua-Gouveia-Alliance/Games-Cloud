@@ -3,18 +3,18 @@
 source config.sh
 
 # Step 1: launch a vm instance.
-$DIR/launch-vm.sh
+$DIR/launch-webserver-vm.sh
 
 # Step 2: install software in the VM instance.
-$DIR/install-vm.sh
+$DIR/install-webserver-vm.sh
 
 # Step 3: test VM instance.
-$DIR/test-vm.sh
+$DIR/test-webserver-vm.sh
 
 # Step 4: create VM image (AIM).
 aws ec2 create-image \
-    --instance-id $(cat instance.id) \
-    --name GaC-image | jq -r .ImageId > image.id
+    --instance-id $(cat instance-webserver.id) \
+    --name GaC-image | jq -r .ImageId > image-webserver.id
 echo "New VM image with id $(cat image.id)."
 
 # Step 5: Wait for image to become available.
@@ -23,4 +23,4 @@ aws ec2 wait image-available --filters Name=name,Values=GaC-image
 echo "Waiting for image to be ready... done! \o/"
 
 # Step 6: terminate the vm instance.
-aws ec2 terminate-instances --instance-ids $(cat instance.id)
+aws ec2 terminate-instances --instance-ids $(cat instance-webserver.id)
