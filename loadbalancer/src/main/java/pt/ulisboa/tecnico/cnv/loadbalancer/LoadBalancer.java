@@ -43,6 +43,7 @@ public class LoadBalancer {
                 String requestPath = exchange.getRequestURI().getPath();
 
                 if (requestPath.equals("/") || requestPath.equals("/index.html")) {
+                    System.out.print("[LoadBalancerHandler] Request for root path. Going to respond with default String.");
                     String response = "Welcome to Games@Cloud LoadBalancer! The system is up and running.";
                     exchange.getResponseHeaders().add("Content-Type", "text/plain");
                     exchange.sendResponseHeaders(200, response.length());
@@ -54,6 +55,7 @@ public class LoadBalancer {
 
                 String query = exchange.getRequestURI().getQuery();
                 String fullPath = requestPath + (query != null ? "?" + query : "");
+                System.out.print("[LoadBalancerHandler] Request for path: " + fullPath);
 
                 Request req = new Request(fullPath, exchange);
                 delegateToWorker(req);
@@ -70,6 +72,13 @@ public class LoadBalancer {
 
     private void delegateToWorker(Request req) {
         WorkerHandler chosenWorker = chooseWorker(req);
+
+        if (chosenWorker != null) {
+            System.out.print("[LoadBalancer] Chosen worker for req (" + req.path + "): "  + chosenWorker.ip);
+        } else {
+            System.out.print("[LoadBalancer] Going to use lambda for req (" + req.path + ").");
+        }
+
         if (chosenWorker == null) {
             useLambda(req);
             return;
@@ -79,6 +88,7 @@ public class LoadBalancer {
         synchronized (chosenWorker.queue.cond) {
             chosenWorker.queue.notifyChange();
         }
+        System.out.print("[LoadBalancer] Notified worker " + chosenWorker.ip);
     }
 
     private WorkerHandler chooseWorker(Request req) {
@@ -90,9 +100,12 @@ public class LoadBalancer {
             ArrayList<Long> scores = new ArrayList<>(workers.size());
 
             long newReqWorkload = req.calculateWorkload();
+            System.out.print("[LoadBalancer] New req (" + req.path + ") workload: " + newReqWorkload);
             boolean available = false;
             for (int i = 0; i < workers.size(); i++) {
                 long workerWorkload = workers.get(i).getCurrentWorkload();
+
+                System.out.print("[LoadBalancer] Worker " + workers.get(i).ip + " workload: " + workerWorkload);
                 if (workerWorkload + newReqWorkload > MAX_WORKLOAD) {
                     scores.add(Long.MAX_VALUE);
                 } else {

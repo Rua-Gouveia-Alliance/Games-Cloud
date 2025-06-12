@@ -5,6 +5,9 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 
 public class EC2InstanceManager {
@@ -33,7 +36,7 @@ public class EC2InstanceManager {
 
             RunInstancesResponse runResponse = ec2.runInstances(runRequest);
             String instanceId = runResponse.instances().get(0).instanceId();
-            System.out.println("Launched EC2 instance with ID: " + instanceId);
+            System.out.println("[EC2InstanceManager] Launched EC2 instance with ID: " + instanceId);
 
             // Wait for instance to reach 'running' state
             boolean ready = false;
@@ -54,10 +57,10 @@ public class EC2InstanceManager {
 
             return instanceId;
         } catch (Ec2Exception e) {
-            System.err.println("EC2 error: " + e.awsErrorDetails().errorMessage());
+            System.err.println("[EC2InstanceManager] EC2 error: " + e.awsErrorDetails().errorMessage());
             return "";
         } catch (InterruptedException e) {
-            System.out.println("EC2 error (terminated unexpectedly): " + e.toString());
+            System.out.println("[EC2InstanceManager] EC2 error (terminated unexpectedly): " + e.toString());
             return "";
         }
     }
@@ -76,9 +79,9 @@ public class EC2InstanceManager {
             TerminateInstancesResponse termResponse = ec2.terminateInstances(termRequest);
             List<InstanceStateChange> termResults = termResponse.terminatingInstances();
 
-            System.out.println("Instance terminated: " + termResults.get(0).instanceId());
+            System.out.println("[EC2InstanceManager] Instance terminated: " + termResults.get(0).instanceId());
         } catch (Ec2Exception e) {
-            System.err.println("EC2 error: " + e.awsErrorDetails().errorMessage());
+            System.err.println("[EC2InstanceManager] EC2 error: " + e.awsErrorDetails().errorMessage());
         }
     }
 
@@ -98,24 +101,50 @@ public class EC2InstanceManager {
 
             List<Reservation> reservations = response.reservations();
             if (reservations.isEmpty()) {
-                System.err.println("No reservations found for instance ID: " + instanceId);
+                System.err.println("[EC2InstanceManager] No reservations found for instance ID: " + instanceId);
                 return null;
             }
 
             List<Instance> instances = reservations.get(0).instances();
             if (instances.isEmpty()) {
-                System.err.println("No instance details found for instance ID: " + instanceId);
+                System.err.println("[EC2InstanceManager] No instance details found for instance ID: " + instanceId);
                 return null;
             }
 
             Instance instance = instances.get(0);
             String ip = instance.publicIpAddress(); // use privateIpAddress() if needed
-            System.out.println("Instance " + instanceId + " IP: " + ip);
+            System.out.println("[EC2InstanceManager] Instance " + instanceId + " IP: " + ip);
             return ip;
 
         } catch (Ec2Exception e) {
-            System.err.println("EC2 error: " + e.awsErrorDetails().errorMessage());
+            System.err.println("[EC2InstanceManager] EC2 error: " + e.awsErrorDetails().errorMessage());
             return null;
+        }
+    }
+
+    public static void waitUntilInstanceIsReady(String ip) throws InterruptedException {
+    boolean responsive = false;
+    while (!responsive) {
+            try {
+                URL url = new URL("http://" + ip + ":8000/index.html");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(3000);
+                conn.setReadTimeout(3000);
+
+                int code = conn.getResponseCode();
+                if (code == 200) {
+                    System.out.println("[EC2InstanceManager] Instance is responsive at /index.html.");
+                    responsive = true;
+                } else {
+                    System.out.println("[EC2InstanceManager] Waiting for HTTP 200 (got " + code + ")...");
+                }
+
+            } catch (IOException e) {
+                System.out.println("[EC2InstanceManager] Instance not ready yet...");
+            }
+
+            Thread.sleep(5000);
         }
     }
 }

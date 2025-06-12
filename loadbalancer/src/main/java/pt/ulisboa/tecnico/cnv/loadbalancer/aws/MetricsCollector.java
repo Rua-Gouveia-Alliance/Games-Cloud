@@ -18,6 +18,7 @@ public class MetricsCollector {
 
     public void addMetric(Metric metric) {
         metrics.add(metric);
+        System.out.print("Metric logged: " + metric);
     }
 
     public List<Metric> getAllMetrics() {

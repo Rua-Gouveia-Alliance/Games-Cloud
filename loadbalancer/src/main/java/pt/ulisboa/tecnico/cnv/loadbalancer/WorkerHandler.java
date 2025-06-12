@@ -10,7 +10,7 @@ import java.io.OutputStream;
 
 public class WorkerHandler extends Thread {
     public String instanceId;
-    private final String ip;
+    public final String ip;
     private final int port = 8000;
 
     public ConcurrentQueue<Request> queue = new ConcurrentQueue<>();
@@ -28,28 +28,33 @@ public class WorkerHandler extends Thread {
         try {
             while (true) {
                 while (queue.length() == 0) {
+                    System.out.println("[WorkerHandle (" + this.ip + ")] Going to wait for requests...");
                     synchronized (queue.cond) {
                         queue.waitChange();
                     }
+                    System.out.println("[WorkerHandle (" + this.ip + ")] Worker waken up...");
                 }
 
                 currentRequest = queue.pop();
+                System.out.println("[WorkerHandle (" + this.ip + ")] Processing request: " + currentRequest.path);
                 boolean success = processRequest(currentRequest);
+                System.out.println("[WorkerHandle (" + this.ip + ")] Processing result: " + currentRequest.result);
                 if (!success) {
                     handleCrash();
                     return;
                 }
 
+                System.out.println("[WorkerHandle (" + this.ip + ")] Sending response...");
                 sendResponse(currentRequest);
                 currentRequest = null;
             }
         } catch (InterruptedException e) {
-            System.out.println("[WorkerHandler] Terminated unexpectedly: " + e.toString());
+            System.out.println("[WorkerHandler (" + this.ip + ")] Terminated unexpectedly: " + e.toString());
         }
     }
 
     private void handleCrash() {
-        System.err.println("[WORKER FAILURE] Instance " + instanceId + " failed. Reassigning tasks.");
+        System.out.println("[WorkerHandle (" + this.ip + ")] Instance " + instanceId + " failed. Reassigning tasks.");
 
         synchronized (loadBalancer.workers) {
             loadBalancer.workers.remove(this);

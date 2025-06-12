@@ -42,7 +42,7 @@ public class DynamoRetriever {
                 allMetrics.add(metrics);
             }
         } catch (DynamoDbException e) {
-            System.err.println("Error querying DynamoDB: " + e.getMessage());
+            System.out.println("[DynamoRetriever] Error querying DynamoDB: " + e.getMessage());
             e.printStackTrace();
         }
         return allMetrics;
@@ -54,6 +54,7 @@ public class DynamoRetriever {
         Map<String, Integer> closestParams = null;
         double minDistance = Double.MAX_VALUE;
 
+        System.out.println("[DynamoRetriever] Going to retrieve closest metric for params " + inputParams);
         QueryRequest queryRequest = QueryRequest.builder()
                 .tableName("MetricStorageSystem")
                 .keyConditionExpression("GameName = :gameName")
@@ -90,6 +91,7 @@ public class DynamoRetriever {
                 if (storedInputParams != null) {
                     double distance = computeEuclideanDistanceMaps(inputParams, parsedParams);
                     if (distance < minDistance) {
+                        System.out.println("[DynamoRetriever] Closest metric until now: " + closestMetric + ", with params: " + closestParams);
                         minDistance = distance;
                         closestMetric = metrics;
                         closestParams = parsedParams;
@@ -98,9 +100,15 @@ public class DynamoRetriever {
             }
 
         } catch (DynamoDbException e) {
-            System.err.println("Error querying DynamoDB: " + e.getMessage());
+            System.out.println("[DynamoRetriever] Error querying DynamoDB: " + e.getMessage());
             e.printStackTrace();
         }
+
+
+        if (closestMetric != null && closestParams != null)
+            System.out.println("[DynamoRetriever] Return closest metric found: " + closestMetric + ", with params: " + closestParams);
+        else
+            System.out.println("[DynamoRetriever] No metrics found, return [null, null]");
 
         ArrayList<Object> closestMetrics = new ArrayList<>();
         closestMetrics.add(closestMetric);
@@ -109,6 +117,8 @@ public class DynamoRetriever {
     }
 
     public static double computeEuclideanDistanceMaps(Map<String, Integer> input, Map<String, Integer> stored) {
+        System.out.println("[DynamoRetriever] Computing euclidean distance between: " + input + " AND " + stored);
+
         double sum = 0.0;
         for (String key : input.keySet()) {
             if (!stored.containsKey(key)) continue;

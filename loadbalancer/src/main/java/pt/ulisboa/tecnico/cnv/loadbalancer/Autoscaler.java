@@ -7,7 +7,10 @@ import org.ojalgo.optimisation.Variable;
 import pt.ulisboa.tecnico.cnv.loadbalancer.aws.EC2InstanceManager;
 import pt.ulisboa.tecnico.cnv.loadbalancer.aws.EC2Metrics;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.*;
 
 public class Autoscaler extends Thread {
@@ -73,7 +76,7 @@ public class Autoscaler extends Thread {
             BigDecimal count = result.get(entry.getKey().intValue());
             configuration.put(name, count);
         }
-        System.out.println("Total cost: " + result.getValue());
+        System.out.println("[Autoscaler] Total cost: " + result.getValue());
         return configuration;
     }
 
@@ -128,7 +131,14 @@ public class Autoscaler extends Thread {
         if (instanceId.isEmpty())
             return;
 
-        WorkerHandler newHandler = new WorkerHandler(instanceId, EC2InstanceManager.getInstanceIP(instanceId), this.loadBalancer);
+        String ip = EC2InstanceManager.getInstanceIP(instanceId);
+        try {
+        EC2InstanceManager.waitUntilInstanceIsReady(ip);
+        } catch (InterruptedException e) {
+            System.out.print("[Autoscaler] scaleOut interrupted: " + e.toString());
+        }
+        WorkerHandler newHandler = new WorkerHandler(instanceId, ip, this.loadBalancer);
+        newHandler.start();
         synchronized (lbWorkers) {
             lbWorkers.add(newHandler);
         }
@@ -152,12 +162,15 @@ public class Autoscaler extends Thread {
             long lambda = getCurrentLambda();
             HashMap<String, BigDecimal> config = computeConfiguration(lambda);
             for (Map.Entry<String, BigDecimal> e : config.entrySet()) {
-                System.out.println(e.getKey() + ": " + e.getValue());
+                System.out.println("[AutoScaler] " + e.getKey() + ": " + e.getValue());
             }
 
+            System.out.println("[AutoScaler] Current worker size: " + workers.size());
             if (config.get("VM").compareTo(BigDecimal.valueOf(workers.size())) < 0 && lbWorkers.size() > MIN_NUM_WORKERS) {
+                System.out.println("[AutoScaler] Going to scaleIn");
                 scaleIn();
             } else if (config.get("VM").compareTo(BigDecimal.valueOf(workers.size())) > 0 && lbWorkers.size() < MAX_NUM_WORKERS) {
+                System.out.println("[AutoScaler] Going to scaleOut");
                 scaleOut();
             }
 
@@ -168,4 +181,5 @@ public class Autoscaler extends Thread {
             }
         }
     }
+
 }

@@ -81,6 +81,7 @@ public class ICount extends CodeDumper {
                             LocalDateTime.class.getName(), nmethods.get(), nblocks.get(),
                             ninsts.get())
                     + " }", true);
+            System.out.print("Successfuly instrumented method");
         }
     }
 
