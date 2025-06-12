@@ -12,7 +12,7 @@ ssh -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH ec2-user@$(cat insta
 scp -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH -r $SERVER_PATH ec2-user@$(cat instance-webserver.dns):~
 
 # Build web server.
-cmd="cd ~/cnv25-g05; mvn clean package"
+cmd="cd ~/cnv25-g05; mvn -X clean package"
 ssh -o StrictHostKeyChecking=no -i $AWS_EC2_SSH_KEYPAR_PATH ec2-user@$(cat instance-webserver.dns) $cmd 
 
 # Start web server at boot using rc.local

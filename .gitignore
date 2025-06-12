@@ -8,6 +8,8 @@ output
 *.pem
 config.sh
 rootkey.csv
-image.id
-instance.dns
-instance.id
+image-webserver.id
+instance-loadbalancer.id
+instance-loadbalancer.dns
+instance-webserver.id
+instance-webserver.dns
