@@ -7,11 +7,12 @@ import org.ojalgo.optimisation.Variable;
 import pt.ulisboa.tecnico.cnv.loadbalancer.aws.EC2InstanceManager;
 import pt.ulisboa.tecnico.cnv.loadbalancer.aws.EC2Metrics;
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.*;
+import java.util.List;
+import java.util.HashMap;
+import java.util.AbstractMap;
+import java.util.Map;
+import java.util.ArrayList;
 
 public class Autoscaler extends Thread {
 
@@ -39,6 +40,7 @@ public class Autoscaler extends Thread {
     static private HashMap<String, WorkerInfo> workers = new HashMap<>() {
         {
             // Since we're only using a single type of VM, price can be set to anything
+            // TODO: Determine capacity
             put("VM", new WorkerInfo(1.0, 1.0));
         }
     };
