@@ -49,8 +49,8 @@ public class Request {
 
             System.out.println("[Request] Metrics obtained for path " + this.path + ": " + methods + ", " + blocks + ", " + instructions);
 
-            // TODO tuned weights based on experiments
-            double workload = 0.25 * methods + 0.25 * blocks + 0.5 * instructions;
+            // tuned weights based on experiments
+            double workloadNow = 0.25 * methods + 0.25 * blocks + 0.5 * instructions;
 
             // Ratio-based adjustment: compare input "size" to closest metric
             double inputSum = paramsDict.values().stream()
@@ -66,7 +66,7 @@ public class Request {
             double ratio = inputSum / (storedSum == 0 ? 1 : storedSum);
             ratio = Math.max(0.5, Math.min(2.0, ratio));  // clamping
 
-            double adjustedWorkload = workload * ratio;
+            double adjustedWorkload = workloadNow * ratio;
 
             System.out.println("[Request] Calculated workload: " + this.workload);
             this.workload = Math.round(adjustedWorkload);

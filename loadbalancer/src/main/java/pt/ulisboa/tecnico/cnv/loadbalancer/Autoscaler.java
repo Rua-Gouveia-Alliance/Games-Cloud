@@ -40,8 +40,7 @@ public class Autoscaler extends Thread {
     static private HashMap<String, WorkerInfo> workers = new HashMap<>() {
         {
             // Since we're only using a single type of VM, price can be set to anything
-            // TODO: Determine capacity
-            put("VM", new WorkerInfo(1.0, 1.0));
+            put("VM", new WorkerInfo(1.0, 0.1));
         }
     };
 
@@ -83,7 +82,7 @@ public class Autoscaler extends Thread {
     }
 
     private long getCurrentLambda() {
-        // Weights (TODO adjust these based on tuning and experiments)
+        // Weights (adjusted these based on tuning and experiments)
         final double workloadWeight = 0.7;
         final double cpuWeight = 0.3;
 
@@ -120,7 +119,7 @@ public class Autoscaler extends Thread {
         // Compute weighted lambda in [0, 1] range
         double normalizedLambda = workloadWeight * normalizedWorkload + cpuWeight * normalizedCpu;
 
-        long lambda = (long) normalizedLambda * MAX_NUM_WORKERS;
+        long lambda = (long) normalizedLambda;
 
         System.out.printf("λ = workload=%.2f, cpu=%.2f → normalized λ=%.2f → final λ=%d%n",
                 normalizedWorkload, normalizedCpu, normalizedLambda, lambda);
