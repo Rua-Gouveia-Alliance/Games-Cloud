@@ -15,17 +15,17 @@ public class ICount extends CodeDumper {
     /**
      * Number of executed basic blocks.
      */
-    private static final ThreadLocal<Integer> nblocks = ThreadLocal.withInitial(() -> 0);
+    public static final ThreadLocal<Integer> nblocks = ThreadLocal.withInitial(() -> 0);
 
     /**
      * Number of executed methods.
      */
-    private static final ThreadLocal<Integer> nmethods = ThreadLocal.withInitial(() -> 0);
+    public static final ThreadLocal<Integer> nmethods = ThreadLocal.withInitial(() -> 0);
 
     /**
      * Number of executed instructions.
      */
-    private static final ThreadLocal<Integer> ninsts = ThreadLocal.withInitial(() -> 0);
+    public static final ThreadLocal<Integer> ninsts = ThreadLocal.withInitial(() -> 0);
 
     public ICount(List<String> packageNameList, String writeDestination) {
         super(packageNameList, writeDestination);
@@ -71,25 +71,17 @@ public class ICount extends CodeDumper {
         if (behaviorName.equals("handleWorkload")) {
             behavior.insertBefore(String.format("%s.resetStatistics();", ICount.class.getName()));
 
-            String code = String.format(
-                    "{ " +
-                            "java.util.Map params = new java.util.HashMap();" +
-                                "for (int i = 0; i < $args.length; i++) { " +
-                                    "if ($args[i] instanceof Integer) { " +
-                                        "params.put(\"arg\" + i, (Integer) $args[i]); " +
-                                    "} " +
-                                "} " +
-                            "String name = this.getClass().getSimpleName();" +
-                            "%s.getInstance().addMetric(" +
-                            "new %s(name.substring(0, name.length() - 7).toLowerCase(), " +
-                            "System.currentTimeMillis(), params, %dL, %dL, %dL));" +
-                            "%s.accumulateItem();" +
-                            " }",
-                    MetricsCollector.class.getName(),
-                    Metric.class.getName(),
-                    nmethods.get(), nblocks.get(), ninsts.get(),
-                    DynamoUploader.class.getName()
-            );
+            String code = String.format("{ " + "java.util.Map params = new java.util.HashMap();"
+                    + "for (int i = 0; i < $args.length; i++) { "
+                    + "if ($args[i] instanceof Integer) { "
+                    + "params.put(\"arg\" + i, (Integer) $args[i]); " + "} " + "} "
+                    + "String name = this.getClass().getSimpleName();"
+                    + "%s.getInstance().addMetric("
+                    + "new %s(name.substring(0, name.length() - 7).toLowerCase(), "
+                    + "System.currentTimeMillis(), params, %s.nmethods.get(), %s.nblocks.get(), %s.ninsts.get()));"
+                    + "%s.accumulateItem();" + " }", MetricsCollector.class.getName(),
+                    Metric.class.getName(), ICount.class.getName(), ICount.class.getName(),
+                    ICount.class.getName(), DynamoUploader.class.getName());
 
             behavior.insertAfter(code, true);
 
