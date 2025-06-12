@@ -25,10 +25,10 @@ public class Request {
     }
 
     public long calculateWorkload() {
-        System.out.print("[Request] Going to calculate workload for req: " + this.path);
+        System.out.println("[Request] Going to calculate workload for req: " + this.path);
 
         if (workload != -1) {
-            System.out.print("[Request] Workload already present: " + this.workload);
+            System.out.println("[Request] Workload already present: " + this.workload);
             return workload;
         }
 
@@ -47,7 +47,7 @@ public class Request {
             long blocks = recent.getOrDefault("basicBlocks", (long) 0);
             long instructions = recent.getOrDefault("instructions", (long) 0);
 
-            System.out.print("[Request] Metrics obtained for path " + this.path + ": " + methods + ", " + blocks + ", " + instructions);
+            System.out.println("[Request] Metrics obtained for path " + this.path + ": " + methods + ", " + blocks + ", " + instructions);
 
             // TODO tuned weights based on experiments
             double workload = 0.25 * methods + 0.25 * blocks + 0.5 * instructions;
@@ -68,7 +68,7 @@ public class Request {
 
             double adjustedWorkload = workload * ratio;
 
-            System.out.print("[Request] Calculated workload: " + this.workload);
+            System.out.println("[Request] Calculated workload: " + this.workload);
             this.workload = Math.round(adjustedWorkload);
             return this.workload;
         } catch (Exception e) {
@@ -135,7 +135,7 @@ public class Request {
                     break;
             }
         } catch (NumberFormatException e) {
-            System.out.print("[Request] Error parsing request params: " + e.toString());
+            System.out.println("[Request] Error parsing request params: " + e.toString());
         }
 
         return result;

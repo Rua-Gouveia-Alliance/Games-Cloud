@@ -135,7 +135,7 @@ public class Autoscaler extends Thread {
         try {
         EC2InstanceManager.waitUntilInstanceIsReady(ip);
         } catch (InterruptedException e) {
-            System.out.print("[Autoscaler] scaleOut interrupted: " + e.toString());
+            System.out.println("[Autoscaler] scaleOut interrupted: " + e.toString());
         }
         WorkerHandler newHandler = new WorkerHandler(instanceId, ip, this.loadBalancer);
         newHandler.start();
