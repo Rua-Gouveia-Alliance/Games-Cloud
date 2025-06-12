@@ -31,6 +31,7 @@ public class DynamoRetriever {
                     String key = entry.getKey();
                     AttributeValue value = entry.getValue();
 
+
                     if (value.s() != null) {
                         metrics.put(key, value.s());
                     } else if (value.n() != null) {
@@ -38,6 +39,7 @@ public class DynamoRetriever {
                     } else if (value.m() != null) {
                         metrics.put(key, value.m());
                     }
+                    System.out.println("DEBUG3");
                 }
                 allMetrics.add(metrics);
             }
@@ -64,6 +66,7 @@ public class DynamoRetriever {
                 .build();
         try {
             QueryResponse queryResponse = client.query(queryRequest);
+            System.out.println("DEBUG1");
             for (Map<String, AttributeValue> item : queryResponse.items()) {
                 Map<String, Long> metrics = new HashMap<>();
                 Map<String, AttributeValue> storedInputParams = null;
@@ -72,6 +75,9 @@ public class DynamoRetriever {
                 for (Map.Entry<String, AttributeValue> entry : item.entrySet()) {
                     String key = entry.getKey();
                     AttributeValue value = entry.getValue();
+                    System.out.println("DEBUG2");
+                    System.out.println("Key: " + key);
+                    System.out.println("Value: " + value);
 
                     if (value.n() != null) {
                         try {
@@ -79,13 +85,14 @@ public class DynamoRetriever {
                         } catch (NumberFormatException e) {
                             metrics.put(key, (long) 0);
                         }
-                    } else if (value.m() != null && key.equals("InputParameters")) {
+                    } else if (value.m() != null && key.equals("Params")) {
                         storedInputParams = value.m();
                         for (Map.Entry<String, AttributeValue> param : storedInputParams.entrySet()) {
                             if (param.getValue() == null || param.getValue().n() == null) continue;
                             parsedParams.put(param.getKey(), Integer.parseInt(param.getValue().n()));
                         }
                     }
+                    System.out.println("DEBUG3");
                 }
 
                 if (storedInputParams != null) {
@@ -103,7 +110,6 @@ public class DynamoRetriever {
             System.out.println("[DynamoRetriever] Error querying DynamoDB: " + e.getMessage());
             e.printStackTrace();
         }
-
 
         if (closestMetric != null && closestParams != null)
             System.out.println("[DynamoRetriever] Return closest metric found: " + closestMetric + ", with params: " + closestParams);
