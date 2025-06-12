@@ -41,6 +41,17 @@ public class LoadBalancer {
         public void handle(HttpExchange exchange) throws IOException {
             try {
                 String requestPath = exchange.getRequestURI().getPath();
+
+                if (requestPath.equals("/") || requestPath.equals("/index.html")) {
+                    String response = "Welcome to Games@Cloud LoadBalancer! The system is up and running.";
+                    exchange.getResponseHeaders().add("Content-Type", "text/plain");
+                    exchange.sendResponseHeaders(200, response.length());
+                    try (OutputStream os = exchange.getResponseBody()) {
+                        os.write(response.getBytes());
+                    }
+                    return;
+                }
+
                 String query = exchange.getRequestURI().getQuery();
                 String fullPath = requestPath + (query != null ? "?" + query : "");
 
