@@ -13,7 +13,7 @@ import java.util.List;
 public class LoadBalancer {
 
     private static final int LB_PORT = 8080;
-    public static final long MAX_WORKLOAD = (long) Long.MAX_VALUE; // TODO
+    public static final long MAX_WORKLOAD = (long) 3066607530L;
 
     public final List<WorkerHandler> workers = Collections.synchronizedList(new ArrayList<>());
 

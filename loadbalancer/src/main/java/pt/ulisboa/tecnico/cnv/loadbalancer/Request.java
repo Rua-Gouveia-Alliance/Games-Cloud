@@ -68,8 +68,8 @@ public class Request {
 
             double adjustedWorkload = workloadNow * ratio;
 
-            System.out.println("[Request] Calculated workload: " + this.workload);
             this.workload = Math.round(adjustedWorkload);
+            System.out.println("[Request] Calculated workload: " + this.workload);
             return this.workload;
         } catch (Exception e) {
             System.out.println("[Request] Error parsing metric values: " + e.getMessage());
