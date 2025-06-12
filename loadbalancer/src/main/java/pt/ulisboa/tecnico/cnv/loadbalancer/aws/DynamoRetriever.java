@@ -104,7 +104,6 @@ public class DynamoRetriever {
 
         ArrayList<Object> closestMetrics = new ArrayList<>();
         closestMetrics.add(closestMetric);
-        closestMetrics.add(minDistance);
         closestMetrics.add(closestParams);
         return closestMetrics;
     }

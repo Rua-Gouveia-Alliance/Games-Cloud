@@ -15,7 +15,7 @@ $DIR/test-webserver-vm.sh
 aws ec2 create-image \
     --instance-id $(cat instance-webserver.id) \
     --name GaC-image | jq -r .ImageId > image-webserver.id
-echo "New VM image with id $(cat image.id)."
+echo "New VM image with id $(cat image-webserver.id)."
 
 # Step 5: Wait for image to become available.
 echo "Waiting for image to be ready... (this can take a couple of minutes)"

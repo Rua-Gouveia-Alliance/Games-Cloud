@@ -78,7 +78,7 @@ public class Autoscaler extends Thread {
     }
 
     private long getCurrentLambda() {
-        // Weights (adjust these based on tuning and experiments)
+        // Weights (TODO adjust these based on tuning and experiments)
         final double workloadWeight = 0.7;
         final double cpuWeight = 0.3;
 

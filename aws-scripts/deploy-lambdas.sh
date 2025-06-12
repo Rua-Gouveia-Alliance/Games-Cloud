@@ -25,11 +25,9 @@ for GAME in "${!GAMES[@]}"; do
   HANDLER="${GAMES[$GAME]}"
   FUNCTION_NAME="${GAME}Handler"
 
-  # Build JAR with dependencies
-  (cd "$PROJECT_DIR" && mvn clean package -DskipTests)
-
   # Get the fat JAR path
   JAR_FILE=$(find "$PROJECT_DIR/target" -name "*-jar-with-dependencies.jar" | head -n 1)
+  echo $JAR_FILE
   if [ ! -f "$JAR_FILE" ]; then
     echo "Fat JAR not found for $GAME. Skipping."
     continue
