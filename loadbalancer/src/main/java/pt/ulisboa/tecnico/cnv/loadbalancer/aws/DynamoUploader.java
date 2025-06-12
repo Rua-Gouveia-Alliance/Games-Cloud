@@ -38,7 +38,7 @@ public class DynamoUploader {
     private static Map<String, AttributeValue> metricToMap(Metric m) {
         Map<String, AttributeValue> itemMap = new HashMap<>();
         itemMap.put("GameName", AttributeValue.builder().s(m.gameName()).build());
-        itemMap.put("Timestamp", AttributeValue.builder().s(m.timestamp()).build());
+        itemMap.put("Timestamp", AttributeValue.builder().n(Long.toString(m.timestamp())).build());
         itemMap.put("Methods", AttributeValue.builder().n(Long.toString(m.methods())).build());
         itemMap.put("BasicBlocks",
                 AttributeValue.builder().n(Long.toString(m.basicBlocks())).build());
