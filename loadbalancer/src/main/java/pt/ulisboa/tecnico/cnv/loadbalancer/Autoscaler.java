@@ -165,11 +165,11 @@ public class Autoscaler extends Thread {
                 System.out.println("[AutoScaler] " + e.getKey() + ": " + e.getValue());
             }
 
-            System.out.println("[AutoScaler] Current worker size: " + workers.size());
-            if (config.get("VM").compareTo(BigDecimal.valueOf(workers.size())) < 0 && lbWorkers.size() > MIN_NUM_WORKERS) {
+            System.out.println("[AutoScaler] Current worker size: " + lbWorkers.size());
+            if (config.get("VM").compareTo(BigDecimal.valueOf(lbWorkers.size())) < 0 && lbWorkers.size() > MIN_NUM_WORKERS) {
                 System.out.println("[AutoScaler] Going to scaleIn");
                 scaleIn();
-            } else if (config.get("VM").compareTo(BigDecimal.valueOf(workers.size())) > 0 && lbWorkers.size() < MAX_NUM_WORKERS) {
+            } else if (config.get("VM").compareTo(BigDecimal.valueOf(lbWorkers.size())) > 0 && lbWorkers.size() < MAX_NUM_WORKERS) {
                 System.out.println("[AutoScaler] Going to scaleOut");
                 scaleOut();
             }
