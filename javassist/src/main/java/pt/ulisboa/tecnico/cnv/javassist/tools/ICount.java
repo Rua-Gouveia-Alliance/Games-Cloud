@@ -76,7 +76,7 @@ public class ICount extends CodeDumper {
                     + "if ($args[i] instanceof Integer) { "
                     + "params.put(\"arg\" + i, (Integer) $args[i]); } }"
                     + String.format(
-                            "%s.getInstance().addMetric(new %s(this.getClass().getSimpleName(), %s.now(), params, %d, %d, %d));",
+                            "%s.getInstance().addMetric(new %s(this.getClass().getSimpleName(), %s.now(), params, %dL, %dL, %dL));",
                             MetricsCollector.class.getName(), Metric.class.getName(),
                             LocalDateTime.class.getName(), nmethods.get(), nblocks.get(),
                             ninsts.get())
