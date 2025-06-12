@@ -15,7 +15,7 @@ public class DynamoUploader {
     private static final DynamoDbClient client = DynamoDbClient.create();
     private static final ConcurrentQueue<Map<String, AttributeValue>> itemsBuffer =
             new ConcurrentQueue<>();
-    private static final int BUFFER_LIMIT = 5;
+    private static final int BUFFER_LIMIT = 1;
     private static int itemsToSend = 0;
 
     // Called at the end of an instance execution, with the thread-specific MetricsCollector
@@ -32,6 +32,12 @@ public class DynamoUploader {
         for (Metric m : metrics) {
             itemsBuffer.push(metricToMap(m));
             itemsToSend++;
+        }
+
+        if (itemsToSend >= BUFFER_LIMIT) {
+            System.out
+                    .println("Buffer limit reached. Uploading Metrics and accumulating new item.");
+            uploadMetrics();
         }
     }
 
