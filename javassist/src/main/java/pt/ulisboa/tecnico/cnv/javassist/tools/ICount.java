@@ -7,6 +7,7 @@ import java.util.List;
 
 import javassist.CannotCompileException;
 import javassist.CtBehavior;
+import pt.ulisboa.tecnico.cnv.loadbalancer.aws.DynamoUploader;
 import pt.ulisboa.tecnico.cnv.loadbalancer.aws.Metric;
 import pt.ulisboa.tecnico.cnv.loadbalancer.aws.MetricsCollector;
 
@@ -80,8 +81,9 @@ public class ICount extends CodeDumper {
                             MetricsCollector.class.getName(), Metric.class.getName(),
                             LocalDateTime.class.getName(), nmethods.get(), nblocks.get(),
                             ninsts.get())
-                    + " }", true);
-            System.out.print("Successfuly instrumented method");
+                    + String.format("%s.accumulateItem();", DynamoUploader.class.getName()) + " }",
+                    true);
+            System.out.print("[ICount] Successfuly instrumented method");
         }
     }
 
