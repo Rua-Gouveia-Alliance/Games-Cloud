@@ -9,15 +9,13 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class LoadBalancer {
 
     private static final int LB_PORT = 8080;
-    public static final long MAX_WORKLOAD = Long.MAX_VALUE; // TODO
+    public static final long MAX_WORKLOAD = (long) Long.MAX_VALUE; // TODO
 
     public final List<WorkerHandler> workers = Collections.synchronizedList(new ArrayList<>());
-    private final AtomicInteger currentWorkerIndex = new AtomicInteger(0);
 
     private final Autoscaler autoscaler = new Autoscaler(this);
 

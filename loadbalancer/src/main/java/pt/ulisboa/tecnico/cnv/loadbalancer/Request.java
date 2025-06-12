@@ -17,6 +17,7 @@ public class Request {
     String path;
     String result;
     HttpExchange exchange;
+    long workload = -1;
 
     public Request(String path, HttpExchange exchange) {
         this.path = path;
@@ -24,11 +25,13 @@ public class Request {
     }
 
     public long calculateWorkload() {
+        if (workload != -1)
+            return workload;
+
         Map<String, Integer> paramsDict = this.getParamsDict();
         ArrayList<Object> recentClosest = DynamoRetriever.retrieveRecentClosestMetric(this.getType(), this.getParamsDict(), 100);
         Map<String, Long> recent = (Map<String, Long>) recentClosest.get(0);
-        double distance = (double) recentClosest.get(1);
-        Map<String, Integer> storedParams = (Map<String, Integer>) recentClosest.get(2);
+        Map<String, Integer> storedParams = (Map<String, Integer>) recentClosest.get(1);
 
         if (recent == null) {
             System.out.println("[Request] No metric found, assuming default workload of 0");
@@ -42,7 +45,7 @@ public class Request {
 
             // TODO tune these weights based on experiments
             // "If you have logs of real executions (with actual durations), you can compare those to the metrics and compute the best weights using a linear regression to predict duration from metrics."
-            double workload = 1.0 * methods + 2.0 * blocks + 1.5 * instructions;
+            double workload = 0.25 * methods + 0.25 * blocks + 0.5 * instructions;
 
             // Ratio-based adjustment: compare input "size" to closest metric
             double inputSum = paramsDict.values().stream()
@@ -58,11 +61,10 @@ public class Request {
             double ratio = inputSum / (storedSum == 0 ? 1 : storedSum);
             ratio = Math.max(0.5, Math.min(2.0, ratio));  // clamping
 
-            // Distance penalty for uncertainty
-            double uncertaintyPenalty = Math.log(1 + distance) * 0.05;
+            double adjustedWorkload = workload * ratio;
 
-            double adjustedWorkload = workload * ratio * (1 + uncertaintyPenalty);
-            return Math.round(adjustedWorkload);
+            this.workload = Math.round(adjustedWorkload);
+            return this.workload;
         } catch (Exception e) {
             System.out.println("[Request] Error parsing metric values: " + e.getMessage());
             return 0;
