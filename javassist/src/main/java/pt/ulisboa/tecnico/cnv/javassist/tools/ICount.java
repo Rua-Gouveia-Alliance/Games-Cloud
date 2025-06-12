@@ -70,21 +70,29 @@ public class ICount extends CodeDumper {
         String behaviorName = behavior.getName();
         if (behaviorName.equals("handleWorkload")) {
             behavior.insertBefore(String.format("%s.resetStatistics();", ICount.class.getName()));
-            behavior.insertAfter(
-                    "{ " + "java.util.Map params = new java.util.HashMap();"
-                            + "for (int i = 0; i < $args.length; i++) { "
-                            + "if ($args[i] instanceof Integer) { "
-                            + "params.put(\"arg\" + i, (Integer) $args[i]); } }"
-                            + String.format(String.join(
-                                    "String name = this.getClass().getSimpleName();",
-                                    "%s.getInstance().addMetric",
-                                    "(new %s(name.substring(0, name.length() - 7).toLowerCase(),",
-                                    " System.currentTimeMillis(), params, %dL, %dL, %dL));"),
-                                    MetricsCollector.class.getName(), Metric.class.getName(),
-                                    nmethods.get(), nblocks.get(), ninsts.get())
-                            + String.format("%s.accumulateItem();", DynamoUploader.class.getName())
-                            + " }",
-                    true);
+
+            String code = String.format(
+                    "{ " +
+                            "java.util.Map params = new java.util.HashMap();" +
+                                "for (int i = 0; i < $args.length; i++) { " +
+                                    "if ($args[i] instanceof Integer) { " +
+                                        "params.put(\"arg\" + i, (Integer) $args[i]); " +
+                                    "} " +
+                                "} " +
+                            "String name = this.getClass().getSimpleName();" +
+                            "%s.getInstance().addMetric(" +
+                            "new %s(name.substring(0, name.length() - 7).toLowerCase(), " +
+                            "System.currentTimeMillis(), params, %dL, %dL, %dL));" +
+                            "%s.accumulateItem();" +
+                            " }",
+                    MetricsCollector.class.getName(),
+                    Metric.class.getName(),
+                    nmethods.get(), nblocks.get(), ninsts.get(),
+                    DynamoUploader.class.getName()
+            );
+
+            behavior.insertAfter(code, true);
+
             System.out.print("[ICount] Successfuly instrumented method");
         }
     }

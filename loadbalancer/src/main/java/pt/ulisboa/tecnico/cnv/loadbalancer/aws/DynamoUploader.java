@@ -9,24 +9,17 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 import java.util.*;
 import java.util.Map.Entry;
 
-// TODO: Buffer timeout
 public class DynamoUploader {
 
     private static final DynamoDbClient client = DynamoDbClient.create();
     private static final ConcurrentQueue<Map<String, AttributeValue>> itemsBuffer =
             new ConcurrentQueue<>();
-    private static final int BUFFER_LIMIT = 1;
+    private static final int BUFFER_LIMIT = 5;
     private static int itemsToSend = 0;
 
     // Called at the end of an instance execution, with the thread-specific MetricsCollector
     // simpleton mapping its metrics to this global environment class
     public static void accumulateItem() {
-        if (itemsToSend >= BUFFER_LIMIT) {
-            System.out
-                    .println("Buffer limit reached. Uploading Metrics and accumulating new item.");
-            uploadMetrics();
-        }
-
         List<Metric> metrics = MetricsCollector.getInstance().getAllMetrics();
         MetricsCollector.getInstance().clearMetrics();
         for (Metric m : metrics) {
