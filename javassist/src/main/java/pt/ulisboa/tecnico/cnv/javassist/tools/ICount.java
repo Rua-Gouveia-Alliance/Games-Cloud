@@ -3,6 +3,7 @@ package pt.ulisboa.tecnico.cnv.javassist.tools;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import javassist.CannotCompileException;
 import javassist.CtBehavior;
@@ -15,17 +16,17 @@ public class ICount extends CodeDumper {
     /**
      * Number of executed basic blocks.
      */
-    public static final ThreadLocal<Integer> nblocks = ThreadLocal.withInitial(() -> 0);
+    private static final ThreadLocal<Integer> nblocks = ThreadLocal.withInitial(() -> 0);
 
     /**
      * Number of executed methods.
      */
-    public static final ThreadLocal<Integer> nmethods = ThreadLocal.withInitial(() -> 0);
+    private static final ThreadLocal<Integer> nmethods = ThreadLocal.withInitial(() -> 0);
 
     /**
      * Number of executed instructions.
      */
-    public static final ThreadLocal<Integer> ninsts = ThreadLocal.withInitial(() -> 0);
+    private static final ThreadLocal<Integer> ninsts = ThreadLocal.withInitial(() -> 0);
 
     public ICount(List<String> packageNameList, String writeDestination) {
         super(packageNameList, writeDestination);
@@ -46,19 +47,11 @@ public class ICount extends CodeDumper {
         ninsts.set(0);
     }
 
-    public static void printStatistics(String className) {
-        try {
-            FileWriter fwriter = new FileWriter(String.format("output/%s.txt", className), true);
-            fwriter.write(String.format("M: %s; BB: %s; I: %s\n", nmethods.get(), nblocks.get(),
-                    ninsts.get()));
-            fwriter.close();
-            System.out.println(String.format("[%s] Successfully logged metrics for %s",
-                    ICount.class.getSimpleName(), className));
-        } catch (IOException e) {
-            System.out.println(String.format("[%s] Failed logging metrics for %s",
-                    ICount.class.getSimpleName(), className));
-            e.printStackTrace();
-        }
+    public static void logStatistics(String className, Map<String, Integer> params) {
+        MetricsCollector.getInstance().addMetric(new Metric(className.substring(0, className.length() - 7).toLowerCase(),
+                System.currentTimeMillis(), params,
+                nmethods.get().longValue(), nblocks.get().longValue(), ninsts.get().longValue()));
+                DynamoUploader.accumulateItem();
     }
 
     @Override
@@ -71,17 +64,19 @@ public class ICount extends CodeDumper {
         if (behaviorName.equals("handleWorkload")) {
             behavior.insertBefore(String.format("%s.resetStatistics();", ICount.class.getName()));
 
-            String code = String.format("{ " + "java.util.Map params = new java.util.HashMap();"
-                    + "for (int i = 0; i < $args.length; i++) { "
-                    + "if ($args[i] instanceof Integer) { "
-                    + "params.put(\"arg\" + i, (Integer) $args[i]); " + "} " + "} "
-                    + "String name = this.getClass().getSimpleName();"
-                    + "%s.getInstance().addMetric("
-                    + "new %s(name.substring(0, name.length() - 7).toLowerCase(), "
-                    + "System.currentTimeMillis(), params, %s.nmethods.get(), %s.nblocks.get(), %s.ninsts.get()));"
-                    + "%s.accumulateItem();" + " }", MetricsCollector.class.getName(),
-                    Metric.class.getName(), ICount.class.getName(), ICount.class.getName(),
-                    ICount.class.getName(), DynamoUploader.class.getName());
+            String code = String.format(
+                    "{ " +
+                            "java.util.Map params = new java.util.HashMap();" +
+                                "for (int i = 0; i < $args.length; i++) { " +
+                                    "if ($args[i] instanceof Integer) { " +
+                                        "params.put(\"arg\" + i, (Integer) $args[i]); " +
+                                    "} " +
+                                "} " +
+                            "String name = this.getClass().getSimpleName();" +
+                             "%s.logStatistics(name, params);" +
+                            " }",
+                    ICount.class.getName()
+            );
 
             behavior.insertAfter(code, true);
 
