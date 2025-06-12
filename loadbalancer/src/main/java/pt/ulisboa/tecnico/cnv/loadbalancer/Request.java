@@ -43,9 +43,9 @@ public class Request {
         }
 
         try {
-            long methods = recent.getOrDefault("methods", (long) 0);
-            long blocks = recent.getOrDefault("basicBlocks", (long) 0);
-            long instructions = recent.getOrDefault("instructions", (long) 0);
+            long methods = recent.getOrDefault("Methods", (long) 0);
+            long blocks = recent.getOrDefault("BasicBlocks", (long) 0);
+            long instructions = recent.getOrDefault("Instructions", (long) 0);
 
             System.out.println("[Request] Metrics obtained for path " + this.path + ": " + methods + ", " + blocks + ", " + instructions);
 
