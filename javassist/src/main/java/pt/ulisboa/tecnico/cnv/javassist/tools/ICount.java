@@ -81,6 +81,7 @@ public class ICount extends CodeDumper {
                             nmethods.get(), nblocks.get(), ninsts.get())
                     + String.format("%s.accumulateItem();", DynamoUploader.class.getName()) + " }",
                     true);
+            System.out.print("[ICount] Successfuly instrumented method");
         }
     }
 

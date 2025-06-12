@@ -61,7 +61,7 @@ public class DynamoUploader {
         while (!itemsBuffer.isEmpty() && writeRequests.size() < BUFFER_LIMIT) {
             Map<String, AttributeValue> item = itemsBuffer.pop();
             writeRequests.add(WriteRequest.builder().putRequest(pr -> pr.item(item)).build());
-            System.out.printf("[Uploader] Added to BatchWriteRequest: " + item.toString());
+            System.out.println("[Uploader] Added to BatchWriteRequest: " + item.toString());
         }
 
         if (!writeRequests.isEmpty()) {

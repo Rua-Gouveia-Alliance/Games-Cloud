@@ -25,8 +25,12 @@ public class Request {
     }
 
     public long calculateWorkload() {
-        if (workload != -1)
+        System.out.println("[Request] Going to calculate workload for req: " + this.path);
+
+        if (workload != -1) {
+            System.out.println("[Request] Workload already present: " + this.workload);
             return workload;
+        }
 
         Map<String, Integer> paramsDict = this.getParamsDict();
         ArrayList<Object> recentClosest = DynamoRetriever.retrieveRecentClosestMetric(this.getType(), this.getParamsDict(), 100);
@@ -43,8 +47,9 @@ public class Request {
             long blocks = recent.getOrDefault("basicBlocks", (long) 0);
             long instructions = recent.getOrDefault("instructions", (long) 0);
 
-            // TODO tune these weights based on experiments
-            // "If you have logs of real executions (with actual durations), you can compare those to the metrics and compute the best weights using a linear regression to predict duration from metrics."
+            System.out.println("[Request] Metrics obtained for path " + this.path + ": " + methods + ", " + blocks + ", " + instructions);
+
+            // TODO tuned weights based on experiments
             double workload = 0.25 * methods + 0.25 * blocks + 0.5 * instructions;
 
             // Ratio-based adjustment: compare input "size" to closest metric
@@ -63,6 +68,7 @@ public class Request {
 
             double adjustedWorkload = workload * ratio;
 
+            System.out.println("[Request] Calculated workload: " + this.workload);
             this.workload = Math.round(adjustedWorkload);
             return this.workload;
         } catch (Exception e) {
@@ -129,7 +135,7 @@ public class Request {
                     break;
             }
         } catch (NumberFormatException e) {
-            System.out.print("[Request] Error parsing request params: " + e.toString());
+            System.out.println("[Request] Error parsing request params: " + e.toString());
         }
 
         return result;

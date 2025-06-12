@@ -42,7 +42,7 @@ public class EC2Metrics {
             List<Datapoint> dataPoints = response.datapoints();
 
             if (dataPoints.isEmpty()) {
-                System.out.printf("No CPU data for instance %s%n", instanceId);
+                System.out.printf("[EC2Metrics] No CPU data for instance %s%n", instanceId);
                 return -1.0;
             }
 
@@ -54,7 +54,7 @@ public class EC2Metrics {
             return latest.average();
 
         } catch (CloudWatchException e) {
-            System.err.println("CloudWatch error: " + e.awsErrorDetails().errorMessage());
+            System.out.println("[EC2Metrics] CloudWatch error: " + e.awsErrorDetails().errorMessage());
             return -1.0;
         }
     }

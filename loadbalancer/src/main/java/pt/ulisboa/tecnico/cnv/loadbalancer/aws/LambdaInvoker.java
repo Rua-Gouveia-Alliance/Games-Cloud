@@ -30,11 +30,11 @@ public class LambdaInvoker {
             InvokeResponse response = lambdaClient.invoke(request);
 
             String result = response.payload().asUtf8String();
-            System.out.println("Lambda returned: " + result);
+            System.out.println("[LambdaInvoker] Lambda returned: " + result);
 
             return result;
         } catch (LambdaException e) {
-            System.err.println("Lambda error: " + e.awsErrorDetails().errorMessage());
+            System.err.println("[LambdaInvoker] Lambda error: " + e.awsErrorDetails().errorMessage());
             return null;
         }
     }
