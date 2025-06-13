@@ -13,13 +13,6 @@
 \title{CCV: Games@Cloud Project Report}
 
 \author{
-  \IEEEauthorblockN{João Gouveia}
-  \IEEEauthorblockA{
-    Instituto Superior Técnico\\
-    Lisbon, Portugal\\
-    ist1102611@tecnico.ulisboa.pt
-  }
-  \and
   \IEEEauthorblockN{Francisco Fonseca}
   \IEEEauthorblockA{
     Instituto Superior Técnico\\
@@ -33,27 +26,93 @@
     Lisbon, Portugal\\
     ist1102604@tecnico.ulisboa.pt
   }
+  \and
+  \IEEEauthorblockN{João Gouveia}
+  \IEEEauthorblockA{
+    Instituto Superior Técnico\\
+    Lisbon, Portugal\\
+    ist1102611@tecnico.ulisboa.pt
+  }
 }
 
 \maketitle
 
 \section{Introduction}
-% TODO
+In this project, we developed a scalable, cost-aware cloud infrastructure for executing computational workloads based on user-submitted tasks. These workloads include solving the 15-puzzle, running simulations in Conway's Game of Life, and executing a Capture the Flag agent-based simulation. Our system dynamically allocates virtual machines (VMs) and uses AWS Lambda for rapid request handling while scaling EC2 resources via an autoscaler.
 
 \section{Architecture Overview}
-% TODO
+The system consists of four core components:
+
+\begin{itemize}
+\item A web server capable of handling HTTP requests for different workloads.
+\item A load balancer that routes incoming requests to either EC2 workers or AWS Lambda based on current system load.
+\item A DynamoDB-based metrics storage system that captures performance information.
+\item An auto-scaler that periodically evaluates current system demand and adjusts the number of active EC2 workers accordingly.
+\end{itemize}
+
+All components are deployed using shell scripts and AWS CLI tools. The web servers and load balancer are deployed to EC2 instances. AWS Lambda serves as a fallback for overflow requests.
 
 \section{Instrumentation}
-% TODO
+We use the Javassist instrumentation framework to analyze the complexity of each request. We instrumented three packages corresponding to each workload, tracking:
+
+\begin{itemize}
+\item Number of methods invoked
+\item Number of basic blocks executed
+\item Number of instructions processed
+\end{itemize}
+
+These metrics are logged and sent to DynamoDB, where they are indexed by game type and input parameters.
 
 \subsection{Data Structures}
-% TODO
+Each workload execution produces a JSON payload with the following fields:
+
+\begin{itemize}
+\item GameName (Partition Key)
+\item Timestamp (Sort Key)
+\item InputParameters: a map of key-value pairs like gridSize, iterations, etc.
+\item Metric fields: \texttt{Methods}, \texttt{BasicBlocks}, \texttt{Instructions}
+\end{itemize}
 
 \section{Workload And Request Cost Estimation}
-% TODO
+The load balancer estimates the computational cost of incoming requests based on previously recorded metrics in DynamoDB. For a new request, the load balancer:
+
+\begin{enumerate}
+\item Parses and normalizes input parameters.
+\item Queries DynamoDB for similar previous requests.
+\item Selects the closest match using Euclidean distance.
+\item Retrieves metrics and applies a weighted formula:
+        $ \text{workload} = 0.25 \times \text{Methods} + 0.25 \times \text{BasicBlocks} + 0.5 \times \text{Instructions} $
+\item Applies an adjustment factor proportional to the input distance to account for parametric variance.
+\end{enumerate}
 
 \section{Load Balancer}
-% TODO
+The load balancer receives all incoming HTTP requests and distributes them using a dynamic scheduling strategy. It:
+
+\begin{itemize}
+\item Maintains a queue for each EC2 worker.
+\item Forwards requests to the least-loaded worker, based on estimated workload.
+\item Invokes AWS Lambda if all workers are saturated.
+\end{itemize}
+
+The load balancer also serves as the coordinator for workload monitoring and reporting, computing an aggregate system load metric that is shared with the auto-scaler.
+
+\subsection{Worker Crash Recovery and Load Redistribution}
+
+To ensure fault tolerance and prevent service disruption, our load balancer actively monitors the health of each worker thread. If an EC2 instance crashes or becomes unreachable (e.g., due to a timeout or failed HTTP connection), the system automatically redistributes its workload as follows:
+
+\begin{enumerate}
+    \item When a request fails to be processed by a worker (e.g., due to an \texttt{IOException}), the request result is marked as \texttt{null}.
+    \item The worker handler notifies the load balancer that the instance has failed. This triggers a recovery mechanism where:
+    \begin{itemize}
+        \item All pending requests in the failed worker's queue are retrieved.
+        \item The currently processing request (if any) is also re-queued.
+    \end{itemize}
+    \item The load balancer then reassigns each of these requests to the remaining healthy EC2 workers or invokes Lambda functions if no workers are available.
+\end{enumerate}
+
+This mechanism ensures that no requests are lost and that failures are transparently handled from the client’s perspective. It also contributes to dynamic elasticity since requests may be diverted to Lambda in the absence of ready EC2 capacity.
+
+In future iterations, this system could be extended to use heartbeats or health check endpoints to detect silent failures more proactively.
 
 \section{Auto-Scaler}
 We implemented a cost-aware auto-scaler based on a simplified version of
@@ -139,6 +198,33 @@ Our objective function is:
 Our approach to auto-scaling is reactive: the algorithm is triggered
 periodically, and—given the current estimated workload—it decides whether to
 scale in, scale out, or maintain the current configuration.
+
+\subsubsection{$\lambda$ Estimation}
+
+We periodically compute a value $\lambda \in [0,1]$ representing the normalized system load. This $\lambda$ is a weighted combination of two normalized metrics:
+
+\begin{itemize}
+    \item \textbf{Workload-based usage:} The sum of all estimated request workloads in the system.
+    \item \textbf{CPU utilization:} The average CPU usage reported by CloudWatch for all active EC2 instances.
+\end{itemize}
+
+The formula is defined as:
+
+\begin{equation}
+\lambda = w_{\text{load}} \cdot \frac{W}{n \cdot W_{\max}} + w_{\text{cpu}} \cdot \frac{\text{CPU}_{\text{avg}}}{100}
+\end{equation}
+
+where:
+
+\begin{itemize}
+    \item $W$ is the total current workload across all instances
+    \item $n$ is the number of active EC2 workers
+    \item $W_{\max}$ is the maximum workload a single VM can handle
+    \item $\text{CPU}_{\text{avg}}$ is the average CPU utilization in percentage
+    \item $w_{\text{load}}$ and $w_{\text{cpu}}$ are the tunable weights (we used $w_{\text{load}} = 0.7$, $w_{\text{cpu}} = 0.3$)
+\end{itemize}
+
+This approach allows us to take into account both current system pressure and infrastructure usage, leading to better-informed scaling decisions.
 
 \begin{thebibliography}{1}
 \bibitem{kingfisher}
