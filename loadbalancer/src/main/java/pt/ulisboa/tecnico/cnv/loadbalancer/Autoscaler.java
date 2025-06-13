@@ -81,7 +81,7 @@ public class Autoscaler extends Thread {
         return configuration;
     }
 
-    private long getCurrentLambda() {
+    private double getCurrentLambda() {
         // Weights (adjusted these based on tuning and experiments)
         final double workloadWeight = 0.7;
         final double cpuWeight = 0.3;
@@ -113,18 +113,17 @@ public class Autoscaler extends Thread {
         double avgCpu = count > 0 ? totalCpu / count : 0.0;
 
         // Normalize both to [0, 1] scale
-        double normalizedWorkload = (double) totalWorkload / (snapshot.size() * LoadBalancer.MAX_WORKLOAD);
+        int snapshotSize = Math.max(snapshot.size(), 1);
+        double normalizedWorkload = (double) totalWorkload / (snapshotSize * LoadBalancer.MAX_WORKLOAD);
         double normalizedCpu = avgCpu / maxCpuPercent;
 
         // Compute weighted lambda in [0, 1] range
         double normalizedLambda = workloadWeight * normalizedWorkload + cpuWeight * normalizedCpu;
 
-        long lambda = (long) normalizedLambda;
+        System.out.printf("λ = workload=%.2f, cpu=%.2f → normalized λ=%.2fn",
+                normalizedWorkload, normalizedCpu, normalizedLambda);
 
-        System.out.printf("λ = workload=%.2f, cpu=%.2f → normalized λ=%.2f → final λ=%d%n",
-                normalizedWorkload, normalizedCpu, normalizedLambda, lambda);
-
-        return lambda;
+        return normalizedLambda;
     }
 
     public void scaleOut() {
@@ -160,7 +159,7 @@ public class Autoscaler extends Thread {
     @Override
     public void run() {
         while (true) {
-            long lambda = getCurrentLambda();
+            double lambda = getCurrentLambda();
             HashMap<String, BigDecimal> config = computeConfiguration(lambda);
             for (Map.Entry<String, BigDecimal> e : config.entrySet()) {
                 System.out.println("[AutoScaler] " + e.getKey() + ": " + e.getValue());
