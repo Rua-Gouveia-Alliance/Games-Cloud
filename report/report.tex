@@ -43,7 +43,7 @@ executing computational workloads based on user-submitted tasks. These workloads
 include solving the 15-puzzle, running simulations in Conway's Game of Life, and
 executing a Capture the Flag agent-based simulation. Our system dynamically
 allocates virtual machines (VMs) and uses AWS Lambda for rapid request handling
-while scaling EC2 resources via an autoscaler.
+while scaling EC2 resources via an auto-scaler.
 
 \section{Architecture Overview}
 The system consists of four core components:
@@ -131,8 +131,8 @@ a dynamic scheduling strategy. It:
 \end{itemize}
 
 The load balancer also serves as the coordinator for workload monitoring and
-reporting, computing a \it{normalized system load} metric that is shared with the
-auto-scaler.
+reporting, computing a \textit{normalized system load} metric that is shared
+with the auto-scaler.
 
 \subsection{Worker Crash Recovery and Load Redistribution}
 
@@ -183,10 +183,10 @@ mechanism $k$.
 
 The constraints are
 \begin{align}
-\sum_{i = 1}^N \sum_{j = 1}^M \sum_{k = 1}^T x_{ijk} C_j \ge; \lambda \
+    \sum_{i = 1}^N \sum_{j = 1}^M \sum_{k = 1}^T x_{ijk} C_j \ge \lambda
 \end{align}
 \begin{align}
-\sum_{j = 1}^M \sum_{k = 1}^T x_{ijk} = 1,; \forall i
+    \sum_{j = 1}^M \sum_{k = 1}^T x_{ijk} = 1,\; \forall i
 \end{align}
 
 where $x_{ijk} \in \{0, 1\}$ is a variable indicating whether server $i$ is
@@ -194,11 +194,11 @@ transformed into a server of type $j$ using transition mechanism $k$.
 
 The objective function is either
 \begin{align}
-\min \sum_{i = 1}^N \sum_{j = 1}^M \sum_{k = 1}^T p_j x_{ijk}
+    \min \sum_{i = 1}^N \sum_{j = 1}^M \sum_{k = 1}^T p_j x_{ijk}
 \end{align}
 if we aim to minimize the configuration cost, or
 \begin{align}
-\min \sum_{i = 1}^N \sum_{j = 1}^M \sum_{k = 1}^T m_{ijk} x_{ijk}
+    \min \sum_{i = 1}^N \sum_{j = 1}^M \sum_{k = 1}^T m_{ijk} x_{ijk}
 \end{align}
 if we aim to minimize transition latency.
 
@@ -219,7 +219,7 @@ on minimizing the cost of the selected VM setup while ensuring that the system
 can handle the workload at any given time.
 
 Instead of targeting a specific request rate, as Kingfisher does, we opted to
-use the \it{normalized system load} estimated by the load balancer. This
+use the \textit{normalized system load} estimated by the load balancer. This
 decision was made for the following reasons:
 \begin{enumerate}
     \item We are already collecting metrics and estimating request cost on the
@@ -234,7 +234,7 @@ system load it can handle and $p_j$ its cost.
 
 Our constraint is:
 \begin{align}
-    \sum_{j = 1}^M n_j C_j ;\ge; \lambda
+    \sum_{j = 1}^M n_j C_j \ge \lambda
 \end{align}
 where $n_j$ represents the number of workers of type $j$ in the new
 configuration.
