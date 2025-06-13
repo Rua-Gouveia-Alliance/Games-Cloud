@@ -317,7 +317,8 @@ As in Figure~\ref{fig:estimated-cost}, we again consider a sequence of
 \texttt{fifteenpuzzle} requests where the \texttt{size} and \texttt{shuffles}
 parameters are set to the same value, increasing from 5 to 80 in steps of 5.
 Figure~\ref{fig:normalized-load} illustrates the corresponding normalized system
-load for each request.
+load for each request. Figure~\ref{fig:vm-count} illustrates the determined
+amount of VMs for each normalized system load value.
 
 \begin{figure}
 \begin{tikzpicture}
@@ -345,6 +346,34 @@ load for each request.
 \end{tikzpicture}
 \caption{Estimated Normalized System Load}
 \label{fig:normalized-load}
+\end{figure}
+
+\begin{figure}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Normalized System Load},
+        ylabel={VM Count},
+        xmin=0, xmax=0.6,
+        ymin=0, ymax=6,
+        xtick={0, 0.1, 0.2, 0.3, 0.4, 0.5},
+        ytick={0,1,2,3,4,5},
+        legend pos=north west,
+        ymajorgrids=true,
+        grid style=dashed,
+    ]
+        \addplot[
+            color=blue,
+            mark=*,
+        ]
+            coordinates {
+                (0.00000500919,1)(0.000033746,1)(0.00011398507,1)(0.00026137148,1)(0.00095960983,1)(0.00141358535,1)
+                (0.00213204353,1)(0.00029551018,1)(0.00691245139,1)(0.01989405675,2)(0.07194712042,1)
+                (0.25,3)(0.07110912086,1)(0.35750412394,4)(0.30515194725,4)(0.44361987422,5)
+            };
+    \end{axis}
+\end{tikzpicture}
+\caption{Computed VM Count}
+\label{fig:vm-count}
 \end{figure}
 
 \begin{thebibliography}{1}
