@@ -199,7 +199,7 @@ Our approach to auto-scaling is reactive: the algorithm is triggered
 periodically, and—given the current estimated workload—it decides whether to
 scale in, scale out, or maintain the current configuration.
 
-\subsubsection{$\lambda$ Estimation}
+\subsection{$\lambda$ Estimation}
 
 We periodically compute a value $\lambda \in [0,1]$ representing the normalized system load. This $\lambda$ is a weighted combination of two normalized metrics:
 
