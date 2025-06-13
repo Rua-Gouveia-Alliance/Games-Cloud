@@ -1,0 +1,152 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\begin{document}
+
+\title{CCV: Games@Cloud Project Report}
+
+\author{
+  \IEEEauthorblockN{João Gouveia}
+  \IEEEauthorblockA{
+    Instituto Superior Técnico\\
+    Lisbon, Portugal\\
+    ist1102611@tecnico.ulisboa.pt
+  }
+  \and
+  \IEEEauthorblockN{Francisco Fonseca}
+  \IEEEauthorblockA{
+    Instituto Superior Técnico\\
+    Lisbon, Portugal\\
+    ist1102492@tecnico.ulisboa.pt
+  }
+  \and
+  \IEEEauthorblockN{Gonçalo Rua}
+  \IEEEauthorblockA{
+    Instituto Superior Técnico\\
+    Lisbon, Portugal\\
+    ist1102604@tecnico.ulisboa.pt
+  }
+}
+
+\maketitle
+
+\section{Introduction}
+% TODO
+
+\section{Architecture Overview}
+% TODO
+
+\section{Instrumentation}
+% TODO
+
+\subsection{Data Structures}
+% TODO
+
+\section{Workload And Request Cost Estimation}
+% TODO
+
+\section{Load Balancer}
+% TODO
+
+\section{Auto-Scaler}
+We implemented a cost-aware auto-scaler based on a simplified version of
+Kingfisher \cite{kingfisher}.
+
+\subsection{Kingfisher}
+Kingfisher uses integer linear programming (ILP) to efficiently determine the
+optimal VM configuration for a given workload, taking into account either the
+cost of the new configuration or the latency introduced by the transition.
+
+Let $\lambda$ denote the number of requests an application is expected to handle
+while meeting a target response time, and let $N$ be the maximum number of
+servers that can be used to meet this goal. Let $M$ denote the number of
+available VM types, and for a worker of type $j$, let $C_j$ denote its maximum
+request rate and $p_j$ its cost. Let $T$ be the number of different transition
+methods supported by the chosen cloud provider, and let $m_{ijk}$ denote the
+latency introduced by transitioning server $i$ to type $j$ using transition
+mechanism $k$.
+
+The constraints are
+\begin{align}
+\sum_{i = 1}^N \sum_{j = 1}^M \sum_{k = 1}^T x_{ijk} C_j \ge; \lambda \
+\end{align}
+\begin{align}
+\sum_{j = 1}^M \sum_{k = 1}^T x_{ijk} = 1,; \forall i
+\end{align}
+
+where $x_{ijk} \in \{0, 1\}$ is a variable indicating whether server $i$ is
+transformed into a server of type $j$ using transition mechanism $k$.
+
+The objective function is either
+\begin{align}
+\min \sum_{i = 1}^N \sum_{j = 1}^M \sum_{k = 1}^T p_j x_{ijk}
+\end{align}
+if we aim to minimize the configuration cost, or
+\begin{align}
+\min \sum_{i = 1}^N \sum_{j = 1}^M \sum_{k = 1}^T m_{ijk} x_{ijk}
+\end{align}
+if we aim to minimize transition latency.
+
+\subsection{Our Solution}
+
+According to the project guidelines, we have only one type of VM available
+(\texttt{t2.micro}). While we are not required to support different transition
+mechanisms, we must be able to minimize both startup latency and infrastructure
+cost, rather than optimizing for just one.
+
+As such, our encoding differs from Kingfisher's. We base our model on a simpler
+formulation --- also presented in the paper --- that does not account for
+varying transition latencies.
+
+As previously mentioned, our load balancer is responsible for launching Lambda
+functions, which handles startup latency. Consequently, our auto-scaler focuses
+on minimizing the cost of the selected VM setup while ensuring that the system
+can handle the workload at any given time.
+
+Instead of targeting a specific request rate, as Kingfisher does, we opted to
+use the system workload estimated by the load balancer. This decision was made
+for the following reasons:
+\begin{enumerate}
+    \item We are already collecting metrics and estimating the workload on the
+    load balancer, so no additional overhead is introduced.
+    \item Using real-time information to guide scaling decisions is more
+    accurate and flexible than determining a fixed limit prior to deployment.
+\end{enumerate}
+
+Let $\lambda$ denote the workload our application is subject to at a given
+moment. For a VM of type $j$, let $C_j$ denote the maximum workload it can
+handle and $p_j$ its cost.
+
+Our constraint is:
+\begin{align}
+\sum_{j = 1}^M n_j C_j ;\ge; \lambda
+\end{align}
+where $n_j$ represents the number of workers of type $j$ in the new
+configuration.
+
+Our objective function is:
+\begin{align}
+\min \sum_{j = 1}^M n_j p_j
+\end{align}
+
+Our approach to auto-scaling is reactive: the algorithm is triggered
+periodically, and—given the current estimated workload—it decides whether to
+scale in, scale out, or maintain the current configuration.
+
+\begin{thebibliography}{1}
+\bibitem{kingfisher}
+U. Sharma, P. Shenoy, S. Sahu, and A. Shaikh,
+``Kingfisher: Cost-aware elasticity in the cloud'' in
+\emph{Proc.\ IEEE INFOCOM}, Shanghai, China, Apr.\ 2011, pp.\ 206–210.
+doi:10.1109/INFCOM.2011.5935016.
+
+\end{thebibliography}
+
+\end{document}
