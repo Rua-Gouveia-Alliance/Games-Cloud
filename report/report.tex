@@ -7,6 +7,8 @@
 \usepackage{amsmath}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{pgfplots}
+\pgfplotsset{width=9cm,compat=1.18}
 
 \begin{document}
 
@@ -118,6 +120,33 @@ previously recorded metrics in DynamoDB. For a new request, the load balancer:
     \item Applies an adjustment factor proportional to the input distance to
     account for parametric variance.
 \end{enumerate}
+
+\begin{center}
+\begin{tikzpicture}
+    \begin{axis}[
+        title={Estimated Request Cost},
+        xlabel={Request},
+        ylabel={Estimated Cost},
+        xmin=0, xmax=17,
+        ymin=0, ymax=1360408047,
+        xtick={0,5,10,15},
+        ytick={0, 2e8, 4e8, 6e8, 8e8, 1e9, 1.2e9, 1.4e9},
+        legend pos=north west,
+        ymajorgrids=true,
+        grid style=dashed,
+    ]
+        \addplot[
+            color=blue,
+            mark=*,
+        ]
+            coordinates {
+                (1,15361.25)(2,103485.75)(3,349547.5)(4,801523.75)(5,2942746.75)(6,4334911.5)
+                (7,6538140.75)(8,906213.75)(9,21197775.5)(10,61007264.25)(11,220633581.25)
+                (12,766651882.5)(13,218063765.5)(14,1096324838.5)(15,935781259.25)(16,1360408046.75)
+            };
+    \end{axis}
+\end{tikzpicture}
+\end{center}
 
 \section{Load Balancer}
 The load balancer receives all incoming HTTP requests and distributes them using
