@@ -313,12 +313,6 @@ where:
 This approach allows us to take into account both current system pressure and
 infrastructure usage, leading to better-informed scaling decisions.
 
-As in Figure~\ref{fig:estimated-cost}, we again consider a sequence of
-\texttt{fifteenpuzzle} requests where the \texttt{size} and \texttt{shuffles}
-parameters are set to the same value, increasing from 5 to 80 in steps of 5.
-Figure~\ref{fig:normalized-load} illustrates the corresponding normalized system
-load for each request.
-
 \begin{figure}
 \begin{tikzpicture}
     \begin{axis}[
@@ -346,6 +340,13 @@ load for each request.
 \caption{Estimated Normalized System Load}
 \label{fig:normalized-load}
 \end{figure}
+
+As in Figure~\ref{fig:workload-cost}, we again consider a sequence of
+\texttt{fifteenpuzzle} requests where the \texttt{size} and \texttt{shuffles}
+parameters are set to the same value, increasing from 5 to 80 in steps of 5.
+Figure~\ref{fig:normalized-load} illustrates the corresponding normalized system
+load for each request.
+
 
 \begin{thebibliography}{1}
 \bibitem{kingfisher}
