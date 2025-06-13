@@ -120,7 +120,7 @@ public class Autoscaler extends Thread {
         // Compute weighted lambda in [0, 1] range
         double normalizedLambda = workloadWeight * normalizedWorkload + cpuWeight * normalizedCpu;
 
-        System.out.printf("λ = workload=%.2f, cpu=%.2f → normalized λ=%.2fn",
+        System.out.printf("workload=%.2f, cpu=%.2f → normalized λ=%.2f\n",
                 normalizedWorkload, normalizedCpu, normalizedLambda);
 
         return normalizedLambda;
