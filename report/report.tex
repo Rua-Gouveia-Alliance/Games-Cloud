@@ -60,8 +60,9 @@ The system consists of four core components:
 \end{itemize}
 
 All components are deployed using shell scripts and AWS CLI tools. The web
-servers and load balancer are deployed to EC2 instances. AWS Lambda serves as a
-fallback for overflow requests. % TODO "overflow requests"
+servers and the load balancer are deployed on EC2 instances. AWS Lambda
+functions serve as a fallback for requests that exceed the system's supported
+load.
 
 \begin{figure}[b]
     \includegraphics[height=0.2\paperheight]{images/architecture-overview.png}
@@ -124,8 +125,8 @@ a dynamic scheduling strategy. It:
 
 \begin{itemize}
     \item Maintains a queue for each EC2 worker.
-    \item Forwards requests to the least-loaded worker, based on the estimated % TODO: Proofread
-    request cost of all the requests each server received.
+    \item Forwards requests to the least-loaded worker, based on the estimated cost
+    of the requests each server has received.
     \item Invokes AWS Lambda if all workers are saturated.
 \end{itemize}
 
@@ -221,8 +222,8 @@ Instead of targeting a specific request rate, as Kingfisher does, we opted to
 use the \it{normalized system load} estimated by the load balancer. This
 decision was made for the following reasons:
 \begin{enumerate}
-    \item We are already collecting metrics and estimating the request cost on
-    the load balancer, so the overhead introduced is negligeble. % TODO: Proofread
+    \item We are already collecting metrics and estimating request cost on the
+    load balancer, so the overhead introduced is negligible.
     \item Using real-time information to guide scaling decisions is more
     accurate and flexible than determining a fixed limit prior to deployment.
 \end{enumerate}
