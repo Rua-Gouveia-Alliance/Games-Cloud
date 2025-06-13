@@ -52,6 +52,11 @@ The system consists of four core components:
 
 All components are deployed using shell scripts and AWS CLI tools. The web servers and load balancer are deployed to EC2 instances. AWS Lambda serves as a fallback for overflow requests.
 
+\begin{figure}[b]
+    \includegraphics[height=0.2\paperheight]{images/architecture-overview.png}
+    \caption{Architecture Overview}
+\end{figure}
+
 \section{Instrumentation}
 We use the Javassist instrumentation framework to analyze the complexity of each request. We instrumented three packages corresponding to each workload, tracking:
 
