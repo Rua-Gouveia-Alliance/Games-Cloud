@@ -105,9 +105,8 @@ Metrics are stored in DynamoDB as JSON payloads with the following fields:
 
 \section{Request Cost Estimation}
 
-The load balancer estimates the computational cost (workload) of incoming
-requests based on previously recorded metrics in DynamoDB. For a new request,
-the load balancer:
+The load balancer estimates the computational cost of incoming requests based on
+previously recorded metrics in DynamoDB. For a new request, the load balancer:
 
 \begin{enumerate}
     \item Parses and normalizes input parameters.
@@ -125,13 +124,13 @@ a dynamic scheduling strategy. It:
 
 \begin{itemize}
     \item Maintains a queue for each EC2 worker.
-    \item Forwards requests to the least-loaded worker, based on the estimated
-    workload.
+    \item Forwards requests to the least-loaded worker, based on the estimated % TODO: Proofread
+    request cost of all the requests each server received.
     \item Invokes AWS Lambda if all workers are saturated.
 \end{itemize}
 
 The load balancer also serves as the coordinator for workload monitoring and
-reporting, computing an aggregate system load metric that is shared with the
+reporting, computing a \it{normalized system load} metric that is shared with the
 auto-scaler.
 
 \subsection{Worker Crash Recovery and Load Redistribution}
@@ -155,10 +154,10 @@ system automatically redistributes its workload as follows:
     available.
 \end{enumerate}
 
-This mechanism ensures that no requests are lost and that failures are
-transparently handled from the client’s perspective. It also contributes to % TODO: Transparente ou o oposto de transparente?
-dynamic elasticity since requests may be diverted to Lambda in the absence of
-ready EC2 capacity.
+This mechanism ensures that no requests are lost and that failures are not
+noticeable from the client’s perspective. It also contributes to dynamic
+elasticity since requests may be diverted to Lambda in the absence of ready EC2
+capacity.
 
 In future iterations, this system could be extended to use heartbeats or health
 check endpoints to detect silent failures more proactively.
@@ -219,18 +218,18 @@ on minimizing the cost of the selected VM setup while ensuring that the system
 can handle the workload at any given time.
 
 Instead of targeting a specific request rate, as Kingfisher does, we opted to
-use the normalized system load estimated by the load balancer. This decision was
-made for the following reasons:
+use the \it{normalized system load} estimated by the load balancer. This
+decision was made for the following reasons:
 \begin{enumerate}
-    \item We are already collecting metrics and estimating the workload on the
-    load balancer, so no additional overhead is introduced.
+    \item We are already collecting metrics and estimating the request cost on
+    the load balancer, so the overhead introduced is negligeble. % TODO: Proofread
     \item Using real-time information to guide scaling decisions is more
     accurate and flexible than determining a fixed limit prior to deployment.
 \end{enumerate}
 
 Let $\lambda$ denote the normalized system load our application is subject to at
-a given moment. For a VM of type $j$, let $C_j$ denote the maximum workload it
-can handle and $p_j$ its cost.
+a given moment. For a VM of type $j$, let $C_j$ denote the maximum normalized
+system load it can handle and $p_j$ its cost.
 
 Our constraint is:
 \begin{align}
@@ -254,8 +253,8 @@ We periodically compute a value $\lambda \in [0,1]$ representing the normalized
 system load. This $\lambda$ is a weighted combination of two normalized metrics:
 
 \begin{itemize}
-    \item \textbf{Workload-based usage:} The sum of all estimated request
-    workloads in the system.
+    \item \textbf{Request cost based usage:} The sum of all estimated request
+    costs in the system.
     \item \textbf{CPU utilization:} The average CPU usage reported by CloudWatch
     for all active EC2 instances.
 \end{itemize}
@@ -263,18 +262,19 @@ system load. This $\lambda$ is a weighted combination of two normalized metrics:
 The formula is defined as:
 
 \begin{equation}
-\lambda = w_{\text{load}} \cdot \frac{W}{n \cdot W_{\max}} + w_{\text{cpu}} \cdot \frac{\text{CPU}_{\text{avg}}}{100}
+\lambda = w_{\text{cost}} \cdot \frac{W}{n \cdot W_{\max}} + w_{\text{cpu}} \cdot \frac{\text{CPU}_{\text{avg}}}{100}
 \end{equation}
 
 where:
 
 \begin{itemize}
-    \item $W$ is the total current workload across all instances
-    \item $n$ is the number of active EC2 workers
-    \item $W_{\max}$ is the maximum workload a single VM can handle
-    \item $\text{CPU}_{\text{avg}}$ is the average CPU utilization in percentage
-    \item $w_{\text{load}}$ and $w_{\text{cpu}}$ are the tunable weights (we
-    used $w_{\text{load}} = 0.7$, $w_{\text{cpu}} = 0.3$)
+    \item $W$ is the total current request cost across all instances.
+    \item $n$ is the number of active EC2 workers.
+    \item $W_{\max}$ is the maximum request cost a single VM can handle.
+    \item $\text{CPU}_{\text{avg}}$ is the average CPU utilization in
+    percentage.
+    \item $w_{\text{cost}}$ and $w_{\text{cpu}}$ are the tunable weights (we
+    used $w_{\text{cost}} = 0.7$, $w_{\text{cpu}} = 0.3$)
 \end{itemize}
 
 This approach allows us to take into account both current system pressure and
