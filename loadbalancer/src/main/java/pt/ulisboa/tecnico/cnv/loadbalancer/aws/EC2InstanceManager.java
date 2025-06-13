@@ -14,7 +14,7 @@ public class EC2InstanceManager {
     private static final String REGION = "eu-west-3";
     private static final String AMI_ID = "ami-02ba036240a93a087";
     private static final String KEY_NAME = "gac-aws-key";
-    private static final String SEC_GROUP_ID = "sg-0c0bfb77f51b13223";
+    private static final String SEC_GROUP_ID = "sg-0dea709f8360caf8b";
 
     public static String createInstance() {
         Region region = Region.of(REGION);
