@@ -313,6 +313,40 @@ where:
 This approach allows us to take into account both current system pressure and
 infrastructure usage, leading to better-informed scaling decisions.
 
+As in Figure~\ref{fig:estimated-cost}, we again consider a sequence of
+\texttt{fifteenpuzzle} requests where the \texttt{size} and \texttt{shuffles}
+parameters are set to the same value, increasing from 5 to 80 in steps of 5.
+Figure~\ref{fig:normalized-load} illustrates the corresponding normalized system
+load for each request.
+
+\begin{figure}
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel={Request},
+        ylabel={Normalized System Load},
+        xmin=0, xmax=17,
+        ymin=0, ymax=0.6,
+        xtick={0,5,10,15},
+        ytick={0, 0.1, 0.2, 0.3, 0.4, 0.5},
+        legend pos=north west,
+        ymajorgrids=true,
+        grid style=dashed,
+    ]
+        \addplot[
+            color=blue,
+            mark=*,
+        ]
+            coordinates {
+                (1,0.00000500919)(2,0.000033746)(3,0.00011398507)(4,0.00026137148)(5,0.00095960983)(6,0.00141358535)
+                (7,0.00213204353)(8,0.00029551018)(9,0.00691245139)(10,0.01989405675)(11,0.07194712042)
+                (12,0.25)(13,0.07110912086)(14,0.35750412394)(15,0.30515194725)(16,0.44361987422)
+            };
+    \end{axis}
+\end{tikzpicture}
+\caption{Estimated Normalized System Load}
+\label{fig:normalized-load}
+\end{figure}
+
 \begin{thebibliography}{1}
 \bibitem{kingfisher}
 U. Sharma, P. Shenoy, S. Sahu, and A. Shaikh,
