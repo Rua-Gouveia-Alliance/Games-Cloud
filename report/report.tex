@@ -313,13 +313,6 @@ where:
 This approach allows us to take into account both current system pressure and
 infrastructure usage, leading to better-informed scaling decisions.
 
-As in Figure~\ref{fig:estimated-cost}, we again consider a sequence of
-\texttt{fifteenpuzzle} requests where the \texttt{size} and \texttt{shuffles}
-parameters are set to the same value, increasing from 5 to 80 in steps of 5.
-Figure~\ref{fig:normalized-load} illustrates the corresponding normalized system
-load for each request. Figure~\ref{fig:vm-count} illustrates the determined
-amount of VMs for each normalized system load value.
-
 \begin{figure}
 \begin{tikzpicture}
     \begin{axis}[
@@ -352,41 +345,8 @@ As in Figure~\ref{fig:workload-cost}, we again consider a sequence of
 \texttt{fifteenpuzzle} requests where the \texttt{size} and \texttt{shuffles}
 parameters are set to the same value, increasing from 5 to 80 in steps of 5.
 Figure~\ref{fig:normalized-load} illustrates the corresponding normalized system
-load for each request.
-
-\begin{figure}
-\begin{tikzpicture}
-    \begin{axis}[
-        xlabel={Normalized System Load},
-        ylabel={VM Count},
-        xmin=0, xmax=0.6,
-        ymin=0, ymax=6,
-        xtick={0, 0.1, 0.2, 0.3, 0.4, 0.5},
-        ytick={0,1,2,3,4,5},
-        legend pos=north west,
-        ymajorgrids=true,
-        grid style=dashed,
-    ]
-        \addplot[
-            color=blue,
-            mark=*,
-        ]
-            coordinates {
-                (0.00000500919,1)(0.000033746,1)(0.00011398507,1)(0.00026137148,1)(0.00029551018,1)(0.00095960983,1)(0.00213204353,1)(0.00141358535,1)
-                (0.00691245139,1)(0.01989405675,1)(0.07110912086,1)(0.07194712042,1)
-                (0.25,3)(0.30515194725,4)(0.35750412394,4)(0.44361987422,5)
-            };
-    \end{axis}
-\end{tikzpicture}
-\caption{Computed VM Count}
-\label{fig:vm-count}
-\end{figure}
-
-Finally, Figure~\ref{fig:vm-count} presents the expected number of EC2 virtual machines (VMs) required to handle the same sequence of \texttt{fifteenpuzzle} requests, with \texttt{size} and \texttt{shuffles} increasing from 5 to 80 in increments of 5.
-
-This figure builds directly upon the normalized system load~$\lambda$ values shown in Figure~\ref{fig:normalized-load}. At each step, the system computes the number of VMs necessary to keep up with the current load, assuming a fixed maximum workload capacity per VM. When $\lambda$ exceeds the total system capacity, the auto-scaler triggers a scale-out operation, incrementing the number of VMs.
-
-The trend in the graph shows that, as expected, more complex requests require proportionally more computational power, resulting in a higher VM count. This reflects the reactive nature of our auto-scaling strategy, which continuously adapts the infrastructure to the demands of incoming workloads.
+load for each request. Figure~\ref{fig:vm-count} illustrates the determined
+amount of VMs for each normalized system load value.
 
 \begin{thebibliography}{1}
 \bibitem{kingfisher}
