@@ -117,8 +117,8 @@ public class Request {
         try {
             switch (type) {
                 case "gameoflife":
-                    // arg0 = iterations
-                    result.put("arg0", Integer.parseInt(paramMap.getOrDefault("iterations", "0")));
+                    // arg1 = iterations
+                    result.put("arg1", Integer.parseInt(paramMap.getOrDefault("iterations", "0")));
                     break;
 
                 case "fifteenpuzzle":
