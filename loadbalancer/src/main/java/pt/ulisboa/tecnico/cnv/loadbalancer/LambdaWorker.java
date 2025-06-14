@@ -19,7 +19,7 @@ public class LambdaWorker extends Thread {
 
         String response = null;
         while (response == null) {
-            String json = "{ \"params\": \"" + req.getParams() + "\" }";
+            String json = req.getParamsDictLambda().toString();
             response = LambdaInvoker.invokeLambda(req.getType() + "Handler", json);
             if (response != null)
                 System.out.println("[LambdaWorker] Lambda response: " + response);

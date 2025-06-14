@@ -140,4 +140,17 @@ public class Request {
 
         return result;
     }
+
+    public Map<String, String> getParamsDictLambda() {
+        String[] params = getParams().split("&");
+        Map<String, String> paramMap = new HashMap<>();
+        for (String param : params) {
+            String[] kv = param.split("=");
+            if (kv.length == 2) {
+                paramMap.put(kv[0], kv[1]);
+            }
+        }
+
+        return paramMap;
+    }
 }
